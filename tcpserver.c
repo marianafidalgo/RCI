@@ -20,7 +20,7 @@ int main(void)
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
 	n= getaddrinfo(NULL,"58001",&hints,&res);
-	if(n!=0)/*error*/ 
+	if(n!=0)/*error*/
 		exit(1);
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);

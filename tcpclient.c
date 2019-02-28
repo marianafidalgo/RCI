@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h> 
+#include <netdb.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -22,7 +22,7 @@ int main(void)
 	hints.ai_flags= AI_NUMERICSERV;
 
 	n= getaddrinfo("tejo.tecnico.ulisboa.pt",PORT,&hints,&res);
-	if(n!=0)/*error*/ 
+	if(n!=0)/*error*/
 		exit(1);
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);

@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h> 
+#include <netdb.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -20,7 +20,7 @@ int main(void)
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
 	n= getaddrinfo(NULL,"58001",&hints,&res);
-	if(n!=0)/*error*/ 
+	if(n!=0)/*error*/
 		exit(1);
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
@@ -40,7 +40,7 @@ int main(void)
 	if(n==-1)/*error*/
 		exit(1);
 
-	freeaddrinfo(res); 
+	freeaddrinfo(res);
 	close(fd);
 	exit(0);
 }

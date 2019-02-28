@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h> 
+#include <netdb.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/in.h>
@@ -21,14 +21,14 @@ int main(void)
 	hints.ai_flags= AI_NUMERICSERV;
 
 	n= getaddrinfo("tejo.tecnico.ulisboa.pt",PORT,&hints,&res);
-	if(n!=0)/*error*/ 
+	if(n!=0)/*error*/
 		exit(1);
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if(fd==-1)/*error*/
 		exit(1);
 
-	strcpy(buffer, "WHOISROOT abc:1.1.1.1:1 2.2.2.3:2\n"); 
+	strcpy(buffer, "WHOISROOT abc:1.1.1.1:1 2.2.2.3:2\n");
 	n= sendto(fd,buffer,strlen(buffer),0,res->ai_addr,res->ai_addrlen);
 	if(n==-1)/*error*/
 		exit(1);
@@ -41,7 +41,7 @@ int main(void)
 	write(1,buffer,n);
 
 
-	//freeaddrinfo(res); 
+	//freeaddrinfo(res);
 	close(fd);
 	exit(0);
 }
