@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stdio.h> //depois tirar
 
 int main(void)
 {
@@ -19,7 +20,7 @@ int main(void)
 	hints.ai_socktype=SOCK_STREAM; //TCP socket
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
-	n= getaddrinfo(NULL,"58001",&hints,&res);
+	n= getaddrinfo(NULL,"58003",&hints,&res);
 	if(n!=0)/*error*/
 		exit(1);
 

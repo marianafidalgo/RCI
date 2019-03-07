@@ -1,14 +1,8 @@
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <string.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include "funcs.h"
+
 #define PORT "59000"
 
-int main(void)
+int dump(void)
 {
 	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;
@@ -20,7 +14,7 @@ int main(void)
 	hints.ai_socktype=SOCK_DGRAM; //UDP socket
 	hints.ai_flags= AI_NUMERICSERV;
 
-	n= getaddrinfo("tejo.tecnico.ulisboa.pt",PORT,&hints,&res);
+	n = getaddrinfo("193.136.138.142",PORT,&hints,&res);
 	if(n!=0)/*error*/
 		exit(1);
 
@@ -28,7 +22,7 @@ int main(void)
 	if(fd==-1)/*error*/
 		exit(1);
 
-	strcpy(buffer, "WHOISROOT abc:1.1.1.1:1 2.2.2.3:2\n");
+	strcpy(buffer, "DUMP\n");
 	n= sendto(fd,buffer,strlen(buffer),0,res->ai_addr,res->ai_addrlen);
 	if(n==-1)/*error*/
 		exit(1);
@@ -37,11 +31,11 @@ int main(void)
 	nread=recvfrom(fd,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
 	if(nread ==-1)/*error*/
 		exit(1);
-	write(1,"echo: ",6);
-	write(1,buffer,n);
 
+	//write(1,"echo: ",6);
 
-	//freeaddrinfo(res);
+	write(1,buffer,nread);
+
+	freeaddrinfo(res);
 	close(fd);
-	exit(0);
 }
