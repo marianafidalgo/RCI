@@ -12,8 +12,8 @@
 #include <arpa/inet.h>
 
 int check_arg(int argc, char **argv);
-int dump(void);
-int user_interface();
-/*int root_communication_protocol();*/
+int user_interface(char *command);
+int udpc(char *command, int interface, int hex);
+int root_communication_protocol(char *input, int interface, int hex);
 
 #endif

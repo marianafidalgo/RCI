@@ -3,49 +3,44 @@
 #include <string.h>
 #include "funcs.h"
 
-int root_communication_protocol()
+int root_communication_protocol(char *input, int interface, int hex)
 {
-    char command[100];
-    char input[100];
-    while(1)
+    char command[15];
+
+    char Tport[15];
+    char Uport[15];
+    char StreamID[64];
+    char StreamNAME[64];
+    char StreamADDR[15];
+    char StreamPORT[10];
+    char Ipaddr[15];
+
+
+    printf("input: %s", input);
+    strcpy(command, input);
+    strtok(command, " \n");
+    printf("command %s\n", command);
+    printf("inputss: %s\n", input);
+    if (strcmp (command, "WHOISROOT") == 0) //who is root
     {
-        fgets(input, 100, stdin);
-        printf("input: %s", input);
-       /* sscanf (input, "%s %s %s:%s\n", command, streamID, ipaddr, uport);
-
-        if (strcasecmp (command, "WHOISROOT") == 0) //who is root
-        {
-            printf("WHO IS ROOT: %s %s:%s\n", streamID, ipaddr, uport);
-        }
-        else  if (strcasecmp (command, "status\n") == 0)
-        {
-            printf("status: %s\n", command);
-        }
-        else if (strcasecmp (command, "display on\n") == 0)
-        {
-            printf("display on: %s\n", command);
-        }
-        else if (strcasecmp (command, "display off\n") == 0)
-        {
-            printf("display off: %s\n", command);
-        }
-        else if (strcasecmp (command, "format ascii\n") == 0)
-        {
-            printf("format ascii: %s\n", command);
-        }
-        else if (strcasecmp (command, "format hex\n") == 0)
-        {
-            printf("format hex: %s\n", command);
-        }
-        else if (strcasecmp (command, "debug on\n") == 0)
-        {
-            printf("debug on: %s\n", command);
-        }
-        else
-        {
-            printf("ERROR: Not known command.\n");
-            return -1;
-        }*/
-
+        //WHOISROOT tres:1.1.1.1:59000 193.136.138.142:59000
+        sscanf (input, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, StreamNAME, StreamID, StreamPORT, Ipaddr, Uport);
+        //error
+        udpc(input, interface, hex);
     }
+    else  if (strcmp (command, "REMOVE") == 0)
+    {
+        sscanf (input, "%s %[^:]:%[^:]:%s \n", command, StreamNAME, StreamID, StreamPORT);
+        udpc(input, interface, hex);
+    }
+    else if (strcasecmp (command, "DUMP") == 0)
+    {
+        udpc(input, interface, hex);
+    }
+    else
+    {
+        printf("ERROR: Not known command\n");
+        return -1;
+    }
+
 }
