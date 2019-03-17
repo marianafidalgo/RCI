@@ -7,21 +7,31 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#define PORT "58001"
 
-int main(void)
+
+int tcpc(char *name, char *ip, char *port)
 {
 	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;
 	struct sockaddr_in addr;
-	char buffer[128];
+	char buffer[128]= " ";
+	char streamid [128]= " ";
+	char welcome[128]= " ", newpop[128]= " ";
+
+	strcat(streamid, name);
+	strcat(streamid, ":");
+	strcat(streamid, ip);
+	strcat(streamid, ":");
+	strcat(streamid, port);
+	strcat(streamid, "\n");
+	printf("streamid %s\n", streamid);
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
 	hints.ai_socktype=SOCK_STREAM; //TCP socket
 	hints.ai_flags= AI_NUMERICSERV;
 
-	n= getaddrinfo("tejo.tecnico.ulisboa.pt",PORT,&hints,&res);
+	n= getaddrinfo(ip,port,&hints,&res);
 	if(n!=0)/*error*/
 		exit(1);
 
@@ -33,16 +43,29 @@ int main(void)
 	if(n==-1)/*error*/
 		exit(1);
 
-	n= write(fd, "Hello!\n", 7);
+	n= write(fd, streamid, 128);
 	if(n==-1)/*error*/
 		exit(1);
 
-	n= read(fd, buffer, 128);
+	n= read(fd, welcome, 128);
 	if(n==-1)/*error*/
 		exit(1);
 
-	write(1, "echo: ", 6);
-	write(1, buffer, n);
+	strcpy(welcome, "WE ");
+	strcat(welcome, name);
+	strcat(welcome, ":");
+	strcat(welcome, ip);
+	strcat(welcome, ":");
+	strcat(welcome, port);
+	strcat(welcome, "\n");
+	printf("%s\n", welcome);
+
+	n= write(fd, newpop, 128);
+	if(n==-1)/*error*/
+		exit(1);
+
+
+	/*write(1, welcome, n);*/
 
 	freeaddrinfo(res);
 	close(fd);

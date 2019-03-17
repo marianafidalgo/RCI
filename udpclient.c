@@ -2,7 +2,7 @@
 
 #define PORT "59000"
 
-int udpc(char *command, int interface, int hex)
+int udpc(char *out, char *command, int interface, int hex)
 {
 	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;
@@ -44,6 +44,8 @@ int udpc(char *command, int interface, int hex)
 	if(interface == 1)
 		write(1,buffer,nread);
 
+
 	freeaddrinfo(res);
 	close(fd);
+	strncpy(out, buffer, nread);
 }

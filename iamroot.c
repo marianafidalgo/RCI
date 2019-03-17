@@ -31,12 +31,20 @@ int hex = 0;
 
 int main(int argc, char **argv)
 {
-    if(check_arg(argc, argv)==-1)
+
+    int d =0;
+    FILE *fp = NULL;
+    char input[128];
+    char out[128], command[128];
+
+    d = check_arg(argc, argv);
+    printf("d: %d\n", d);
+    if(d == -1)
     {
             printf("Error: Check your args\n");
             return -1;
     }
-    if(check_arg(argc, argv)==0)
+    else if(d == 0)
     {
             printf("Exit\n");
             exit(0);
@@ -46,7 +54,28 @@ int main(int argc, char **argv)
         printf("proceed\n");
     }
 
-    char input[128];
+    /*open file and write args*/
+
+    fp = fopen(streamID,"w"); /*name id!! é o que queremos encontra*/
+
+    if (fp == NULL)
+    {
+        printf("File was not open sucessfully !!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(fp, "streamID = %s\n", streamID);
+    fprintf(fp, "streamNAME = %s\n", streamNAME);
+    fprintf(fp, "streamADDR = %s\n", streamADDR);
+    fprintf(fp, "streamPORT = %s\n", streamPORT);
+    fprintf(fp, "ipaddr = %s\n", ipaddr);
+    fprintf(fp, "tcpsessions = %d\n", tcpsessions);
+    fprintf(fp, "bestpops = %d\n", bestpops);
+    fprintf(fp, "tsecs = %d\n", tsecs);
+    fprintf(fp, "tport = %s\n", tport);
+    fprintf(fp, "uport = %s\n", uport);
+
+    fclose(fp);
 
     while(1)
     {
@@ -54,8 +83,24 @@ int main(int argc, char **argv)
         fgets(input, 128, stdin);
 
         printf("main input: %s\n", input);
-        if( user_interface(input)==-1)
-            root_communication_protocol(input, display, hex);
+        if( user_interface(out, input)==-1)
+        {
+            root_communication_protocol(out, input, display, hex);
+            char *token = strtok(out, " ");
+            printf("tok %s\n", token);
+
+            if(strcmp(token, "URROOT") == 0)
+            {
+                sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
+                tcpc(streamNAME, streamADDR, streamPORT);
+                /*refresh*/
+            }
+            else if( strcmp(token, "ROOTIS") == 0)
+            {
+                sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, uport);
+                tcpc(streamNAME, streamADDR, streamPORT);
+            }
+        }
     }
 
 }
@@ -65,15 +110,20 @@ int check_arg(int argc, char **argv)
     int opt = -1;
     char arg[64];
     char *array[3];
+    char input[128];
+    char command[128];
+    char out [128];
+    char output[128];
+
     for(int i = 1; i < argc; i++)
     {
         strcpy(arg,argv[i]);
         if(arg[0] != '-')
         {
             strcpy(streamID, argv[i]);
-            printf("mystream: %s\n", streamID);
+            strcpy(arg, streamID);
 
-            char *tok = strtok(streamID, ":");
+            char *tok = strtok(arg, ":");
             i = 0;
 	        while(tok != NULL)
 	        {
@@ -89,10 +139,6 @@ int check_arg(int argc, char **argv)
             strcpy(streamADDR, array[1]);
             strcpy(streamPORT, array[2]);
 
-            printf("name %s\n", streamNAME);
-            printf("add %s\n", streamADDR);
-            printf("ip %s\n", streamPORT);
-
             break;
         }
         else
@@ -106,31 +152,24 @@ int check_arg(int argc, char **argv)
         {
             case 'i':
                 strcpy(ipaddr, optarg);
-                printf("teste -i: %s\n", ipaddr);
                 break;
             case 't':
                 strcpy(tport, optarg);
-                printf("teste -t:%s\n", tport);
                 break;
             case 'u':
                 strcpy(uport, optarg);
-                printf("teste -u:%s\n", optarg);
                 break;
             case 's':
                 strcpy(sarg, optarg);
-                printf("teste -s:%s\n", optarg);
                 break;
             case 'p':
                 tcpsessions = atoi(optarg);
-                printf("teste -p:%s\n", optarg);
                 break;
             case 'n':
                 bestpops = atoi(optarg);
-                printf("teste -n:%s\n", optarg);
                 break;
             case 'x':
                 tsecs = atoi(optarg);
-                printf("teste -x:%s\n", optarg);
                 break;
             case 'b':
             //doesn't show stream data
@@ -152,19 +191,47 @@ int check_arg(int argc, char **argv)
 
     if(strcmp(streamID, "") == 0)
     {
-        udpc("DUMP\n", display, hex);
+        strcpy(input, "DUMP\n");
+        udpc(out, input, display, hex);
         exit(0);
+    }
+    else
+    {
+        strcpy(input, "WHOISROOT ");
+        strcat(input, streamID);
+        strcat(input, " ");
+        strcat(input, ipaddr);
+        strcat(input, ":");
+        strcat(input, uport);
+        strcat(input, "\n");
+
+        udpc(out, input , display, hex);
+        char *token = strtok(out, " ");
+        printf("tok %s\n", token);
+
+        if(strcmp(token, "URROOT")==0)
+        {
+            sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
+            tcpc(streamNAME, streamADDR, streamPORT);
+           /* tcps(tport);
+            udps(uport);*/
+        }
+        else if( strcmp(token, "ROOTIS")==0)
+        {
+            sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, uport);
+        }
     }
 
     return 1;
 }
 
-int user_interface(char *command)
+int user_interface( char *out , char *command)
 {
     printf("command: %s", command);
     if (strcasecmp (command, "streams\n") == 0)
     {
-        udpc("DUMP\n", display, hex);
+        strcpy(command, "DUMP\n");
+        udpc(out, command, display, hex);
     }
     else  if (strcasecmp (command, "status\n") == 0)
     {

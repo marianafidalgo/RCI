@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -6,20 +7,22 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#define PORT "58003"
 
-int udps(char *PORT)
+
+int main(void)
 {
-	struct addrinfo hints,*res;
+	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;
 	struct sockaddr_in addr;
 	char buffer[128];
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
-	hints.ai_socktype=SOCK_DGRAM; //UDP socket
-	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
+	hints.ai_socktype=SOCK_STREAM; //TCP socket
+	hints.ai_flags= AI_NUMERICSERV;
 
-	n= getaddrinfo(NULL,PORT,&hints,&res);
+	n= getaddrinfo("127.0.0.1",PORT,&hints,&res);
 	if(n!=0)/*error*/
 		exit(1);
 
@@ -27,20 +30,21 @@ int udps(char *PORT)
 	if(fd==-1)/*error*/
 		exit(1);
 
-	n=bind(fd,res->ai_addr,res->ai_addrlen);
+	n= connect(fd,res->ai_addr,res->ai_addrlen);
 	if(n==-1)/*error*/
 		exit(1);
 
-	addrlen=sizeof(addr);
-	nread=recvfrom(fd,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
-	if(nread ==-1)/*error*/
-		exit(1);
-
-	n=sendto(fd,buffer,nread,0,(struct sockaddr*)&addr,addrlen);
+	n= write(fd, "Hello!\n", 7);
 	if(n==-1)/*error*/
 		exit(1);
+
+	n= read(fd, buffer, 128);
+	if(n==-1)/*error*/
+		exit(1);
+
+	write(1, "echo: ", 6);
+	write(1, buffer, n);
 
 	freeaddrinfo(res);
 	close(fd);
-	exit(0);
 }
