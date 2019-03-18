@@ -92,13 +92,13 @@ int main(int argc, char **argv)
             if(strcmp(token, "URROOT") == 0)
             {
                 sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
-                tcpc(streamNAME, streamADDR, streamPORT);
+                tcpc(command, streamNAME, streamADDR, streamPORT);
                 /*refresh*/
             }
             else if( strcmp(token, "ROOTIS") == 0)
             {
                 sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, uport);
-                tcpc(streamNAME, streamADDR, streamPORT);
+                tcpc(command, streamNAME, streamADDR, streamPORT);
             }
         }
     }
@@ -212,7 +212,7 @@ int check_arg(int argc, char **argv)
         if(strcmp(token, "URROOT")==0)
         {
             sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
-            tcpc(streamNAME, streamADDR, streamPORT);
+            tcpc(command, streamNAME, streamADDR, streamPORT);
            /* tcps(tport);
             udps(uport);*/
         }

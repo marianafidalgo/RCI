@@ -20,7 +20,7 @@ int main(void)
 	hints.ai_socktype=SOCK_STREAM; //TCP socket
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
-	n= getaddrinfo(NULL,"58005",&hints,&res);
+	n= getaddrinfo(NULL,"58008",&hints,&res);
 	if(n!=0)/*error*/
 		exit(1);
 

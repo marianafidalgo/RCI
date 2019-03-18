@@ -9,7 +9,7 @@
 #include <arpa/inet.h>
 
 
-int tcpc(char *name, char *ip, char *port)
+int tcpc(char *command, char *name, char *ip, char *port)
 {
 	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;

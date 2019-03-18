@@ -12,7 +12,7 @@
 #include <arpa/inet.h>
 
 int check_arg(int argc, char **argv);
-int tcpc(char *name, char *ip, char *port);
+int tcpc(char *command, char *name, char *ip, char *port);
 int tcps(char *PORT);
 int udps(char *PORT);
 int user_interface(char *out, char *command);

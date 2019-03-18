@@ -7,7 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-int udps(char *PORT)
+int udps(char *PAport, char *PAip, char *PORT)
 {
 	struct addrinfo hints,*res;
 	int fd,addrlen,n,nread;
@@ -35,6 +35,11 @@ int udps(char *PORT)
 	nread=recvfrom(fd,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
 	if(nread ==-1)/*error*/
 		exit(1);
+
+	if(strcmp("POPREQ\n", buffer))
+	{
+		
+	}
 
 	n=sendto(fd,buffer,nread,0,(struct sockaddr*)&addr,addrlen);
 	if(n==-1)/*error*/
