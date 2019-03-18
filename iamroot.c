@@ -107,7 +107,11 @@ int main(int argc, char **argv)
 
 int check_arg(int argc, char **argv)
 {
+<<<<<<< HEAD
     int opt = -1, i = 0;
+=======
+    int opt = -1;
+>>>>>>> bc9161425d6646441887190ac24e713d8629cbc5
     char arg[64];
     char *array[3];
     char input[128];
@@ -115,7 +119,11 @@ int check_arg(int argc, char **argv)
     char out [128];
     char output[128];
 
+<<<<<<< HEAD
     for(i = 1; i < argc; i++)
+=======
+    for(int i = 1; i < argc; i++)
+>>>>>>> bc9161425d6646441887190ac24e713d8629cbc5
     {
         strcpy(arg,argv[i]);
         if(arg[0] != '-')

@@ -25,7 +25,10 @@ int tcpc(char *name, char *ip, char *port)
 	strcat(streamid, port);
 	strcat(streamid, "\n");
 	printf("streamid %s\n", streamid);
+<<<<<<< HEAD
 	/*ola*/
+=======
+>>>>>>> bc9161425d6646441887190ac24e713d8629cbc5
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
