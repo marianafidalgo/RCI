@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 
 int check_arg(int argc, char **argv)
 {
-    int opt = -1;
+    int opt = -1, i = 0;
     char arg[64];
     char *array[3];
     char input[128];
@@ -115,7 +115,7 @@ int check_arg(int argc, char **argv)
     char out [128];
     char output[128];
 
-    for(int i = 1; i < argc; i++)
+    for(i = 1; i < argc; i++)
     {
         strcpy(arg,argv[i]);
         if(arg[0] != '-')
