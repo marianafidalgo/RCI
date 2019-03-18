@@ -7,12 +7,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-int udps(char *PAport, char *PAip, char *PORT)
+int udps(char *ipaddr, char *tport, char *PORT, char *streamID)
 {
 	struct addrinfo hints,*res;
 	int fd,addrlen,n,nread;
 	struct sockaddr_in addr;
-	char buffer[128];
+	char buffer[128] = " ";
+	char resp[128] = " ";
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
@@ -36,14 +37,20 @@ int udps(char *PAport, char *PAip, char *PORT)
 	if(nread ==-1)/*error*/
 		exit(1);
 
-	if(strcmp("POPREQ\n", buffer))
+	if(strcmp("POPREQ\n", buffer) == 0)
 	{
-		
-	}
+		strcpy(resp, "POPRESP ");
+		strcat(resp, " ");
+		strcat(resp, streamID);
+		strcat(resp, " ");
+		strcat(resp, ipaddr);
+		strcat(resp, ":");
+		strcat(resp, tport);
 
-	n=sendto(fd,buffer,nread,0,(struct sockaddr*)&addr,addrlen);
-	if(n==-1)/*error*/
-		exit(1);
+		n=sendto(fd,resp,nread,0,(struct sockaddr*)&addr,addrlen);
+		if(n==-1)/*error*/
+			exit(1);
+	}
 
 	freeaddrinfo(res);
 	close(fd);

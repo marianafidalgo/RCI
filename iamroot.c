@@ -92,13 +92,13 @@ int main(int argc, char **argv)
             if(strcmp(token, "URROOT") == 0)
             {
                 sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
-                tcpc(command, streamNAME, streamADDR, streamPORT);
+                tcpc(command, streamNAME, streamADDR, streamPORT, streamADDR, streamPORT);
                 /*refresh*/
             }
             else if( strcmp(token, "ROOTIS") == 0)
             {
-                sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, uport);
-                tcpc(command, streamNAME, streamADDR, streamPORT);
+                sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, tport);
+                tcpc(command, streamNAME, streamADDR, streamPORT, ipaddr, tport);
             }
         }
     }
@@ -206,19 +206,25 @@ int check_arg(int argc, char **argv)
         strcat(input, "\n");
 
         udpc(out, input , display, hex);
+
         char *token = strtok(out, " ");
         printf("tok %s\n", token);
 
         if(strcmp(token, "URROOT")==0)
         {
             sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
-            tcpc(command, streamNAME, streamADDR, streamPORT);
-           /* tcps(tport);
+            tcpc(command, streamNAME, streamADDR, streamPORT, streamADDR, streamPORT);
+            /* tcps(tport);
+            udps(ipaddr, tport, streamPORT, streamID);
             udps(uport);*/
         }
         else if( strcmp(token, "ROOTIS")==0)
         {
             sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, uport);
+            udps(ipaddr, tport, streamPORT, streamID);
+            tcpc(command, streamNAME, streamADDR, streamPORT, ipaddr, tport); //confirmar se ipaddr muda
+
+
         }
     }
 

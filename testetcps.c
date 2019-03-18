@@ -20,7 +20,7 @@ int main(void)
 	hints.ai_socktype=SOCK_STREAM; //TCP socket
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
-	n= getaddrinfo(NULL,"58008",&hints,&res);
+	n= getaddrinfo(NULL,"58009",&hints,&res);
 	if(n!=0)/*error*/
 		exit(1);
 
@@ -42,20 +42,22 @@ int main(void)
 	if(n==-1)/*error*/
 		exit(1);
 
-    sscanf (buffer, "%[^:]:%[^:]:%s \n", name, ip, port);
 
-    strcat(newpop, "NP ");
-	strcat(newpop, ip);
-	strcat(newpop, ":");
-	strcat(newpop, port);
-	strcat(newpop, "\n");
-	printf("%s\n", newpop);
+	strcpy(welcome, "WE ");
+	strcat(welcome, buffer);
 
-	write(1, buffer, n);
-
-	n = write(newfd,welcome,n);
+	/*envia welcome*/
+	n = write(newfd,welcome, n+3);
 	if(n==-1)/*error*/
 		exit(1);
+
+	/*fica à espera de receber newpop*/
+	n= read(newfd, newpop, 128);
+	if(n==-1)/*error*/
+		exit(1);
+
+	/*escreve newpop*/
+	write(1, newpop, n);
 
 	freeaddrinfo(res);
 	close(fd);

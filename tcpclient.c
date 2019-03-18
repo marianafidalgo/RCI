@@ -9,20 +9,20 @@
 #include <arpa/inet.h>
 
 
-int tcpc(char *command, char *name, char *ip, char *port)
+int tcpc(char *command, char *streamname, char *streamip, char *streamport, char *ip, char *port)
 {
 	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;
 	struct sockaddr_in addr;
 	char buffer[128]= " ";
 	char streamid [128]= " ";
-	char welcome[128]= " ", newpop[128]= " ";
+	char welcome[128]= " ", newpop[128]= " ", check[128] = " ";
 
-	strcat(streamid, name);
+	strcat(streamid, streamname);
 	strcat(streamid, ":");
-	strcat(streamid, ip);
+	strcat(streamid, streamip);
 	strcat(streamid, ":");
-	strcat(streamid, port);
+	strcat(streamid, streamport);
 	strcat(streamid, "\n");
 	printf("streamid %s\n", streamid);
 
@@ -47,25 +47,29 @@ int tcpc(char *command, char *name, char *ip, char *port)
 	if(n==-1)/*error*/
 		exit(1);
 
+	/*fica à espera de receber welcome*/
 	n= read(fd, welcome, 128);
 	if(n==-1)/*error*/
 		exit(1);
 
-	strcpy(welcome, "WE ");
-	strcat(welcome, name);
-	strcat(welcome, ":");
-	strcat(welcome, ip);
-	strcat(welcome, ":");
-	strcat(welcome, port);
-	strcat(welcome, "\n");
-	printf("%s\n", welcome);
+	/*escreve o que recebeu no terminal*/
+	write(1, welcome, n);
 
-	n= write(fd, newpop, 128);
-	if(n==-1)/*error*/
-		exit(1);
+	strcpy(check, "WE ");
+	strcat(check, streamid);
 
+	if(strcmp(welcome, check) == 0)
+	{
+		strcat(newpop, "NP ");
+		strcat(newpop, ip);
+		strcat(newpop, ":");
+		strcat(newpop, port);
+		strcat(newpop, "\n");
 
-	/*write(1, welcome, n);*/
+		n= write(fd, newpop, 128);
+		if(n==-1)/*error*/
+			exit(1);
+	}
 
 	freeaddrinfo(res);
 	close(fd);
