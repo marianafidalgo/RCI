@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-
+/*oiii*/
 int tcpc(char *name, char *ip, char *port)
 {
 	struct addrinfo hints, *res;
