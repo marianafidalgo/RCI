@@ -114,6 +114,7 @@ int check_arg(int argc, char **argv)
     char command[128];
     char out [128];
     char output[128];
+    int flag = 0;
 
     for(int i = 1; i < argc; i++)
     {
@@ -214,17 +215,23 @@ int check_arg(int argc, char **argv)
         {
             sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
             tcpc(command, streamNAME, streamADDR, streamPORT, streamADDR, streamPORT);
-            /* tcps(tport);
-            udps(ipaddr, tport, streamPORT, streamID);
-            udps(uport);*/
+            //tcps(command, tport);
+            //udps(ipaddr, tport, streamPORT, streamID);
+
         }
         else if( strcmp(token, "ROOTIS")==0)
         {
             sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s\n", command, streamNAME, streamADDR, streamPORT, ipaddr, uport);
             udps(ipaddr, tport, streamPORT, streamID);
-            tcpc(command, streamNAME, streamADDR, streamPORT, ipaddr, tport); //confirmar se ipaddr muda
+            flag = tcpc(command, streamNAME, streamADDR, streamPORT, ipaddr, tport);
 
+            while(flag != 1 )
+            {
+                flag = tcpc(command, streamNAME, streamADDR, streamPORT, ipaddr, tport);
+            }
 
+            //tcps(command, tport);
+            //enviar novo ponto de acesso
         }
     }
 

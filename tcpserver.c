@@ -8,12 +8,12 @@
 #include <arpa/inet.h>
 #include <stdio.h> //depois tirar
 
-int tcps(char *PORT)
+int tcps(char *command, char *PORT)
 {
 	struct addrinfo hints, *res;
 	int newfd, fd,addrlen,n,nread;
 	struct sockaddr_in addr;
-	char buffer[128];
+	char buffer[128] = " ", welcome[128]= " " , name[128]= " ", ip[128]= " ", port[128]= " ", newpop[128]= " ";
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
@@ -42,12 +42,25 @@ int tcps(char *PORT)
 	if(n==-1)/*error*/
 		exit(1);
 
-	write(1, "received: ",10);
-	write(1, buffer, n);
+	if(strcmp(command, "ROOTIS"))
+	{
+		strcpy(welcome, "WE ");
+		strcat(welcome, buffer);
 
-	n= write(newfd,buffer,n);
+
+	/*envia welcome*/
+	n = write(newfd,welcome, n+3);
 	if(n==-1)/*error*/
 		exit(1);
+
+	/*fica à espera de receber newpop*/
+	n= read(newfd, newpop, 128);
+	if(n==-1)/*error*/
+		exit(1);
+
+	/*escreve newpop*/
+	write(1, newpop, n);
+	}
 
 	freeaddrinfo(res);
 	close(fd);

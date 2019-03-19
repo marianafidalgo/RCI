@@ -69,8 +69,13 @@ int tcpc(char *command, char *streamname, char *streamip, char *streamport, char
 		n= write(fd, newpop, 128);
 		if(n==-1)/*error*/
 			exit(1);
+
+		freeaddrinfo(res);
+		close(fd);
+		return 1;
 	}
 
 	freeaddrinfo(res);
 	close(fd);
+	return 0;
 }
