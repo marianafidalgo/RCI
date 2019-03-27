@@ -6,7 +6,7 @@ int udpc_RS (char *out, char *command, char *rsaddr)
 	int fd,addrlen,n,nread;
 	struct sockaddr_in addr;
 	size_t i = 0;
-	char buffer[1024], hexa[1024];   //1024???
+	char buffer[1024], hexa[1024], remov[6];   //1024???
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
@@ -22,15 +22,21 @@ int udpc_RS (char *out, char *command, char *rsaddr)
 		exit(1);
 
 	strcpy(buffer, command);
+
 	n= sendto(fd,buffer,strlen(buffer),0,res->ai_addr,res->ai_addrlen);
 	if(n==-1)/*error*/
 		exit(1);
 
-	addrlen=sizeof(addr);
-	nread=recvfrom(fd,buffer,1024,0,(struct sockaddr*)&addr,&addrlen);
-	if(nread ==-1)/*error*/
-		exit(1);
+	strcpy(remov, buffer);
+	char *token = strtok(remov, " ");
 
+	if( strcmp("REMOVE", token)!=0)
+	{
+		addrlen=sizeof(addr);
+		nread=recvfrom(fd,buffer,1024,0,(struct sockaddr*)&addr,&addrlen);
+		if(nread ==-1)/*error*/
+			exit(1);
+	}
 	if(hex==1)
 	{
  		for (i = 0; i < strlen(buffer); i++)
@@ -79,11 +85,13 @@ int udpc_POP (char *ipADDR, char *uPORT, char *tPORT)
 
 	sscanf (buffer, "%s %s %[^:]:%s\n", command, streamID, ipADDR, tPORT);
 
+	 printf("udpc ipADDR %s uPORT %s\n", ipADDR, tPORT);
+
 	freeaddrinfo(res);
 	close(fd);
 }
 
-int udpc_PA (char *ipADDR, char *uPORT, char *tPORT)
+/*int udpc_PA (char *ipADDR, char *uPORT, char *tPORT)
 {
 	struct addrinfo hints, *res;
 	int fd, addrlen,n,nread;
@@ -112,14 +120,7 @@ int udpc_PA (char *ipADDR, char *uPORT, char *tPORT)
 	if(n==-1) //error
 		exit(1);
 
-/*	addrlen=sizeof(addr);
-	nread=recvfrom(fd,buffer,1024,0,(struct sockaddr*)&addr,&addrlen);
-	if(nread ==-1)
-		exit(1);
-
-	sscanf (buffer, "%s %s %[^:]:%s\n", command, streamID, ipADDR, tPORT);*/
-
 	freeaddrinfo(res);
 	close(fd);
-}
+}*/
 

@@ -70,9 +70,9 @@ int tcpc_new(char *ip, char *port)
 	{
 		printf("tcpsess %d", tcpsessions);
 		strcpy(newpop, "NP ");
-		strcat(newpop, ip);
+		strcat(newpop, ipaddr);
 		strcat(newpop, ":");
-		strcat(newpop, port);
+		strcat(newpop, tport);
 		strcat(newpop, "\n");
 		n = write(fd, newpop, strlen(newpop));
 		if(n==-1)/*error*/
@@ -80,6 +80,7 @@ int tcpc_new(char *ip, char *port)
 	}
 	else
 	{
+		printf("buffer oasld %s\n", buffer);
 		sscanf(buffer, "%s %[^:]:%s\n", newpop, ip, port);
 		close(fd);
 		freeaddrinfo(res);

@@ -32,7 +32,7 @@ int udps_init(char *ipaddr, char *uport)
 int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNsessions)
 {
 	struct addrinfo hints,*res;
-	int fd, addrlen,n,nread;
+	int fd, addrlen,n,nread, d;
 	struct sockaddr_in addr;
 	char buffer[128] = "";
 	char resp[128] = "";
@@ -44,13 +44,13 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 
 	if(strcmp("POPREQ\n", buffer) == 0)
 	{
-		/* for (d = 0; d <= 10; d++)
+		/*for (d = 0; d <= 10; d++)
 		 {
         	if(fdDOWNsessions[d] != '\0')
 				break;
 		 }
 
-		sscanf(fdDOWNsessions[i], "%[^:]:%s \n", ipaddr, tport);*/
+		sscanf(&fdDOWNsessions[d], "%[^:]:%s \n", ipaddr, tport);*/
 		strcpy(resp, "POPRESP ");
 		strcat(resp, " ");
 		strcat(resp, streamID);
@@ -67,7 +67,7 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 	/*else
 	{
 		printf("PA %s", buffer);
-		strcpy(fdDOWNsessions[pos], buffer);
+		strcpy(&fdDOWNsessions[pos], buffer);
 		pos++;
 	}*/
 

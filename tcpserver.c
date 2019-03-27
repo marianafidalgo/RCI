@@ -37,7 +37,7 @@ int tcps_WE (int fdDOWN, char *filhodireto)
 	struct addrinfo hints, *res;
 	int fd, addrlen,n,nread;
 	struct sockaddr_in addr;
-	char welcome[25], newpop[25], filho[21];
+	char welcome[25], newpop[25], filho[21], redirect[21];
 	char *tok;
 
 	if((fd=accept(fdDOWN,(struct sockaddr*)&addr,&addrlen))==-1)/*error*/
@@ -48,7 +48,13 @@ int tcps_WE (int fdDOWN, char *filhodireto)
 	else if(tcpsessions < 1)
 	{
 		printf("no session available\n");
-
+		//redirect
+		strcpy(redirect, "RE ");
+		strcat(redirect, &filhodireto[0]);
+		strcat(redirect, "\n");
+		n = write(fd, redirect, strlen(redirect));
+		if(n==-1)/*error*/
+			exit(1);
 		return -1;
 	}
 
@@ -72,12 +78,15 @@ int tcps_WE (int fdDOWN, char *filhodireto)
 		if(n==-1)/*error*/
 			exit(1);
 
+		newpop[25]='\0';
 		printf("new pop %s\n", newpop);
 
 		//guarda filho
         sscanf(newpop, "%s %s\n", welcome, filho);
 		strcpy(&filhodireto[tcpsessions-1], filho);
 		tcpsessions--;
+
+		//guarda fd
 	}
 
 	return fd;

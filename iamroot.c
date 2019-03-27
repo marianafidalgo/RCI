@@ -47,29 +47,6 @@ int main(int argc, char **argv)
 
     printf("proceed\n");
 
-    /*open file and write args*/
-/*
-    fp = fopen(streamID,"w"); //name id!! é o que queremos encontrar
-
-    if (fp == NULL)
-    {
-        printf("File was not open sucessfully !!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    fprintf(fp, "streamID = %s\n", streamID);
-    fprintf(fp, "streamNAME = %s\n", streamNAME);
-    fprintf(fp, "streamADDR = %s\n", streamADDR);
-    fprintf(fp, "streamPORT = %s\n", streamPORT);
-    fprintf(fp, "ipaddr = %s\n", ipaddr);
-    fprintf(fp, "tcpsessions = %d\n", tcpsessions);
-    fprintf(fp, "bestpops = %d\n", bestpops);
-    fprintf(fp, "tsecs = %d\n", tsecs);
-    fprintf(fp, "tport = %s\n", tport);
-    fprintf(fp, "uport = %s\n", uport);
-
-    fclose(fp);*/
-
     while(1)
     {
         //inicializar máscara
@@ -131,25 +108,25 @@ int main(int argc, char **argv)
                 /*escreve o que recebeu no terminal*/
                 /*write(1, welcome, n);
 
-                strcpy(check, "WE ");
+                while(flag == -1)strcpy(check, "WE ");
                 strcat(check, streamid);
                     char welcome[128];
                     int n= read(fdUP, welcome, 128);
                     if(n==-1)/*error
                         exit(1);
 
-                    printf("%s", welcome);*/
+                printf("%s", welcome);*/
             }
             else if(fdDOWN != -1 && FD_ISSET(fdDOWN, &fd_socket))
             {
                 printf("receive down\n");
-                tcps_WE(fdDOWN, filhodireto);
+                /*fdUP = */tcps_WE(fdDOWN, filhodireto);
+                printf("filho %s\n", &filhodireto[tcpsessions]);
             }
             else if(fdSA != -1 && FD_ISSET(fdSA, &fd_socket))
             {
                 printf("receive SA\n");
                 udps_SA(streamID, ipaddr, tport, fdSA, fdDOWNsessions); //SA send to PQ
-
             }
         }
     }
@@ -273,18 +250,18 @@ int check_arg(int argc, char **argv)
         {
             sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s \n", command, streamNAME, streamADDR, streamPORT, ipADDR, uPORT);
             printf("addr %s, port %s\n", ipADDR, uPORT);
-
+            udpc_POP(ipADDR, uPORT, tPORT); //send PQ to SA
             while(flag == -1)
             {
                 printf("flag %d\n", flag);
-                udpc_POP(ipADDR, uPORT, tPORT); //send PQ to SA
+                printf(" ipADDR %s uPORT %s\n", ipADDR, tPORT);
                 printf("POP ipADDR %s uPORT %s\n", ipADDR, tPORT);
                 flag = tcpc_new(ipADDR, tPORT);
-                printf(" ipADDR %s uPORT %s\n", ipADDR, tPORT);
+
                 printf("flag %d\n", flag);
             }
             fdDOWN = tcps_init(tport);
-            udpc_PA(ipADDR, uPORT, tport);
+           // udpc_PA(ipADDR, uPORT, tport);
 
         }
     }
@@ -293,6 +270,8 @@ int check_arg(int argc, char **argv)
 
 int user_interface( char *out , char *command)
 {
+    char remove[128]="";
+
     printf("command: %s", command);
     if (strcasecmp (command, "streams\n") == 0)
     {
@@ -335,6 +314,12 @@ int user_interface( char *out , char *command)
     {
         printf("exit: %s\n", command);
         //abandonar a arvore
+        strcpy(remove, "REMOVE ");
+        strcat(remove, streamID);
+        strcat(remove, "\n");
+
+        printf("strs %s\n", remove);
+        udpc_RS(out, remove, streamADDR);
         exit(0);
     }
     else
