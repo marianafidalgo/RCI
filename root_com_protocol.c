@@ -35,6 +35,7 @@ int root_communication_protocol(char *out, char *input, char* rsaddr)
     else if (strcasecmp (command, "DUMP") == 0)
     {
         udpc_RS(out, input, rsaddr);
+        
     }
     else
     {

@@ -29,13 +29,13 @@ int udps_init(char *ipaddr, char *uport)
 	return fd;
 }
 
-int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA)
+int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNsessions)
 {
 	struct addrinfo hints,*res;
 	int fd, addrlen,n,nread;
 	struct sockaddr_in addr;
-	char buffer[128] = " ";
-	char resp[128] = " ";
+	char buffer[128] = "";
+	char resp[128] = "";
 
 	addrlen=sizeof(addr);
 	nread=recvfrom(fdSA,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
@@ -44,6 +44,13 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA)
 
 	if(strcmp("POPREQ\n", buffer) == 0)
 	{
+		/* for (d = 0; d <= 10; d++)
+		 {
+        	if(fdDOWNsessions[d] != '\0')
+				break;
+		 }
+
+		sscanf(fdDOWNsessions[i], "%[^:]:%s \n", ipaddr, tport);*/
 		strcpy(resp, "POPRESP ");
 		strcat(resp, " ");
 		strcat(resp, streamID);
@@ -56,4 +63,13 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA)
 		if(n==-1)/*error*/
 			exit(1);
 	}
+	//else guardar fd em array e ver quantas estao free. alguem faz connect mas o array já tem fd preenchido!
+	/*else
+	{
+		printf("PA %s", buffer);
+		strcpy(fdDOWNsessions[pos], buffer);
+		pos++;
+	}*/
+
+
 }

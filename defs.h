@@ -33,5 +33,6 @@ int display;
 int debug ;
 int hex ;
 int interface;
+int pos;
 
 #endif

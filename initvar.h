@@ -43,4 +43,8 @@ int debug = 0;
 int hex = 0;
 int interface = 0;
 
+char fdDOWNsessions[10]; //???
+int pos = 0;
+
+
 #endif
