@@ -13,30 +13,43 @@ int udpc_RS (char *out, char *command, char *rsaddr)
 	hints.ai_socktype=SOCK_DGRAM; //UDP socket
 	hints.ai_flags= AI_NUMERICSERV;
 
-	n = getaddrinfo(rsaddr,"59000",&hints,&res);
-	if(n!=0)/*error*/
+	n = getaddrinfo(rsaddr,rsport,&hints,&res);
+	if(n!=0 && debug == 1)
+	{
+		printf("ERROR: getaddr udpc_RS\n");
 		exit(1);
+	}
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if(fd==-1)/*error*/
+	if(fd==-1 && debug == 1)
+	{
+		printf("ERROR: socket udpc_RS\n");
 		exit(1);
+	}
 
 	strcpy(buffer, command);
 
 	n= sendto(fd,buffer,strlen(buffer),0,res->ai_addr,res->ai_addrlen);
-	if(n==-1)/*error*/
+	if(n==-1 && debug == 1)
+	{
+		printf("ERROR: sendto udpc_RS\n");
 		exit(1);
+	}
 
 	strcpy(remov, buffer);
 	char *token = strtok(remov, " ");
 
-	if( strcmp("REMOVE", token)!=0)
+	if(strcmp("REMOVE", token) == 0)
+		exit(0);
+
+	addrlen=sizeof(addr);
+	nread=recvfrom(fd,buffer,1024,0,(struct sockaddr*)&addr,&addrlen);
+	if(nread ==-1 && debug == 1)
 	{
-		addrlen=sizeof(addr);
-		nread=recvfrom(fd,buffer,1024,0,(struct sockaddr*)&addr,&addrlen);
-		if(nread ==-1)/*error*/
-			exit(1);
+		printf("ERROR: recvfrom udpc_RS\n");
+		exit(1);
 	}
+
 	if(hex==1)
 	{
  		for (i = 0; i < strlen(buffer); i++)
@@ -67,21 +80,33 @@ int udpc_POP (char *ipADDR, char *uPORT, char *tPORT)
 	hints.ai_flags= AI_NUMERICSERV | AI_NUMERICHOST;
 
 	n = getaddrinfo(ipADDR, uPORT, &hints,&res);
-	if(n!=0) //error
+	if(n!=0 && debug == 1)
+	{
+		printf("ERROR: getaddr udpc_POP\n");
 		exit(1);
+	}
 
 	fd = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if(fd==-1) //error
+	if(fd==-1 && debug == 1)
+	{
+		printf("ERROR: socket udpc_POP\n");
 		exit(1);
+	}
 
 	n = sendto(fd,"POPREQ\n",7,0,res->ai_addr,res->ai_addrlen);
-	if(n==-1) //error
+	if(n==-1 && debug == 1)
+	{
+		printf("ERROR: sendto udpc_POP\n");
 		exit(1);
+	}
 
 	addrlen=sizeof(addr);
 	nread=recvfrom(fd,buffer,1024,0,(struct sockaddr*)&addr,&addrlen);
-	if(nread ==-1)/*error*/
+	if(nread ==-1 && debug == 1)
+	{
+		printf("ERROR: recvfrom udpc_POP\n");
 		exit(1);
+	}
 
 	sscanf (buffer, "%s %s %[^:]:%s\n", command, streamID, ipADDR, tPORT);
 
@@ -91,36 +116,4 @@ int udpc_POP (char *ipADDR, char *uPORT, char *tPORT)
 	close(fd);
 }
 
-/*int udpc_PA (char *ipADDR, char *uPORT, char *tPORT)
-{
-	struct addrinfo hints, *res;
-	int fd, addrlen,n,nread;
-	struct sockaddr_in addr;
-	char buffer[1024]="", PA[1024]="";
-
-	memset(&hints,0,sizeof hints);
-	hints.ai_family=AF_INET; //IPv4
-	hints.ai_socktype=SOCK_DGRAM; //UDP socket
-	hints.ai_flags= AI_NUMERICSERV | AI_NUMERICHOST;
-
-	n = getaddrinfo(ipADDR, uPORT, &hints,&res);
-	if(n!=0) //error
-		exit(1);
-
-	fd = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if(fd==-1) //error
-		exit(1);
-
-	strcpy(PA, ipADDR);
-	strcat(PA, ":");
-	strcat(PA, tPORT);
-	strcat(PA, "\n");
-
-	n = sendto(fd,PA,25,0,res->ai_addr,res->ai_addrlen);
-	if(n==-1) //error
-		exit(1);
-
-	freeaddrinfo(res);
-	close(fd);
-}*/
 

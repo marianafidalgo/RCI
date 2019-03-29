@@ -43,8 +43,13 @@ int debug = 0;
 int hex = 0;
 int interface = 0;
 
-char fdDOWNsessions[10]; //???
 int pos = 0;
+int queryid = 0;
 
+struct ofilho{
+    int fd;
+    char IP[16];
+    char PORT[6];
+};
 
 #endif

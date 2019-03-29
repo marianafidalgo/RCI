@@ -33,6 +33,14 @@ int display;
 int debug ;
 int hex ;
 int interface;
+
 int pos;
+int queryid;
+
+struct ofilho{
+    int fd;
+    char IP[16];
+    char PORT[6];
+};
 
 #endif

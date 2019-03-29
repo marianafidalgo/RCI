@@ -14,16 +14,26 @@ int udps_init(char *ipaddr, char *uport)
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
 	n= getaddrinfo(NULL,uport,&hints,&res);
-	if(n!=0)/*error*/
+	if(n!=0 && debug == 1)
+	{
+		printf("ERROR: getaddr udps_init\n");
 		exit(1);
+	}
+
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if(fd==-1)/*error*/
+	if(fd==-1 && debug == 1)
+	{
+		printf("ERROR: socket udps_init\n");
 		exit(1);
+	}
 
 	n=bind(fd,res->ai_addr,res->ai_addrlen);
-	if(n==-1)/*error*/
+	if(n==-1 && debug == 1)
+	{
+		printf("ERROR: bind udps_init\n");
 		exit(1);
+	}
 
 	freeaddrinfo(res);
 	return fd;
@@ -39,18 +49,14 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 
 	addrlen=sizeof(addr);
 	nread=recvfrom(fdSA,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
-	if(nread ==-1)/*error*/
+	if(nread ==-1 && debug == 1)
+	{
+		printf("ERROR: recvfrom udps_SA\n");
 		exit(1);
+	}
 
 	if(strcmp("POPREQ\n", buffer) == 0)
 	{
-		/*for (d = 0; d <= 10; d++)
-		 {
-        	if(fdDOWNsessions[d] != '\0')
-				break;
-		 }
-
-		sscanf(&fdDOWNsessions[d], "%[^:]:%s \n", ipaddr, tport);*/
 		strcpy(resp, "POPRESP ");
 		strcat(resp, " ");
 		strcat(resp, streamID);
@@ -60,16 +66,12 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 		strcat(resp, tport);
 
 		n=sendto(fdSA,resp,strlen(resp),0,(struct sockaddr*)&addr,addrlen);
-		if(n==-1)/*error*/
+		if(n==-1 && debug == 1)
+		{
+			printf("ERROR: recvfrom udps_SA\n");
 			exit(1);
+		}
 	}
 	//else guardar fd em array e ver quantas estao free. alguem faz connect mas o array já tem fd preenchido!
-	/*else
-	{
-		printf("PA %s", buffer);
-		strcpy(&fdDOWNsessions[pos], buffer);
-		pos++;
-	}*/
-
 
 }

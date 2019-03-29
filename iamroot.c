@@ -1,17 +1,20 @@
 #include "initvar.h"
 
+
+int udpc_RS(char *out, char *command, char *rsaddr);
+int adesao ();
 int check_arg(int argc, char **argv);
 int tcpc_init(char *ip, char *port);
 int tcpc_new(char *ip, char *port);
+int tcpc_Receive(int fdUP);
 int tcps_init(char *PORT);
-int tcps_WE (int fdDOWN, char *fdDOWNsessions);
+int tcps_WE (int fdDOWN, struct ofilho Filho[]);
+int tcps_POPQUERY (int fdD);
 int udps_init(char *ipaddr, char *uport);
-int udps_SA (char *streamID, char *ipaddr, char *tport, int fd, char *fdDOWNsessions);
+int udps_SA (char *streamID, char *ipaddr, char *tport, int fd);
 int user_interface(char *out, char *command);
-int udpc_RS(char *out, char *command, char *rsaddr);
 int udpc_POP (char *ipADDR, char *tPORT, char *uPORT);
 int udpc_PA (char *ipADDR, char *uPORT, char *tPORT);
-int root_communication_protocol(char* out, char *input, char* rsaddr);
 
 
 int main(int argc, char **argv)
@@ -19,33 +22,37 @@ int main(int argc, char **argv)
     struct timeval * t1;
     struct timeval  t2;
     int d = 0, maxfd = 0, socketstate = 0, fdsSA = -1;
-    FILE *fp = NULL;
     fd_set fd_socket;
     char input[128];
     char out[128], command[128];
-    char filhodireto[tcpsessions];
-
-    for (d = 0; d <= tcpsessions; d++)
-        filhodireto[d] = '\0';
-
-    for (d = 0; d <= 10; d++)
-        fdDOWNsessions[d] = '\0';
 
     d = check_arg(argc, argv);
+
+    struct ofilho Filho[tcpsessions];
+    Filho[0].fd = -1;
+
+    printf("size %d\n", tcpsessions);
+
+    printf("size %lu\n", sizeof(Filho));
 
     printf("d: %d\n", d);
     if(d == -1)
     {
-            printf("Error: Check your args\n");
-            return -1;
+        printf("Error: Check your args\n");
+        return -1;
     }
     else if(d == 0)
     {
-            printf("Exit\n");
-            exit(0);
+        printf("Exit\n");
+        exit(0);
     }
 
     printf("proceed\n");
+
+    t1 = NULL;
+    t2.tv_usec = 0;
+    t2.tv_sec = 5;
+    t1 = &t2;
 
     while(1)
     {
@@ -74,15 +81,22 @@ int main(int argc, char **argv)
                 maxfd = fdSA;
         }
 
-       /* t1 = NULL;
-        t2.tv_usec = 0;
-        t2.tv_sec = 5;
-        t1 = &t2;*/
-
-        socketstate = select(maxfd+1, &fd_socket, (fd_set*) NULL, (fd_set*) NULL, (struct timeval *) NULL);
+        socketstate = select(maxfd+1, &fd_socket, (fd_set*) NULL, (fd_set*) NULL, (struct timeval *) &t2);
 
         if(socketstate < 0)
             printf("Erro socketstate\n"); //erro
+            // De 5 em 5 segundos o socketstate é igual a 0 por causa do timeout
+        else if(socketstate == 0)
+        {
+            t1 = NULL;
+            t2.tv_usec = 0;
+            t2.tv_sec = 5;
+            t1 = &t2;
+            //pop_query
+            printf("filho %d\n", Filho[0].fd);
+            if(Filho[0].fd != 0 && Filho[0].fd != -1)
+                tcps_POPQUERY(Filho[0].fd);
+        }
         if(socketstate > 0)
         {
             if(FD_ISSET(0, &fd_socket))
@@ -94,39 +108,18 @@ int main(int argc, char **argv)
             else if(fdUP != -1 && FD_ISSET(fdUP, &fd_socket))
             {
                 printf("receive up\n");
-                //ver se URROOT se sim fazer read
-                /*fica à espera de receber welcome*/
-               /* n= write(fdUP, streamid, 128);
-                if(n==-1)/*error*/
-                   // exit(1);
-
-                /*fica à espera de receber welcome*/
-               /* n= read(fd, welcome, 128);
-                if(n==-1)/*error*/
-                   // exit(1);
-
-                /*escreve o que recebeu no terminal*/
-                /*write(1, welcome, n);
-
-                while(flag == -1)strcpy(check, "WE ");
-                strcat(check, streamid);
-                    char welcome[128];
-                    int n= read(fdUP, welcome, 128);
-                    if(n==-1)/*error
-                        exit(1);
-
-                printf("%s", welcome);*/
+                //adesao();
+                tcpc_Receive(fdUP);
             }
             else if(fdDOWN != -1 && FD_ISSET(fdDOWN, &fd_socket))
             {
                 printf("receive down\n");
-                /*fdUP = */tcps_WE(fdDOWN, filhodireto);
-                printf("filho %s\n", &filhodireto[tcpsessions]);
+                tcps_WE(fdDOWN, Filho);
             }
             else if(fdSA != -1 && FD_ISSET(fdSA, &fd_socket))
             {
                 printf("receive SA\n");
-                udps_SA(streamID, ipaddr, tport, fdSA, fdDOWNsessions); //SA send to PQ
+                udps_SA(streamID, ipaddr, tport, fdSA); //SA send to PQ
             }
         }
     }
@@ -134,15 +127,13 @@ int main(int argc, char **argv)
 
 int check_arg(int argc, char **argv)
 {
+
+    char input[128];
+    char out [128];
     int opt = -1;
     char arg[64];
     char *array[3];
-    char input[128];
-    char command[128];
-    char out [128];
-    char output[128];
-    char ipADDR[15], uPORT[15], tPORT[15];
-    int fd = -1, i = 0, flag = -1;
+    int fd = -1, i = 0;
 
     for(i = 1; i < argc; i++)
     {
@@ -226,44 +217,7 @@ int check_arg(int argc, char **argv)
     }
     else
     {
-        strcpy(input, "WHOISROOT ");
-        strcat(input, streamID);
-        strcat(input, " ");
-        strcat(input, ipaddr);
-        strcat(input, ":");
-        strcat(input, uport);
-        strcat(input, "\n");
-
-        udpc_RS(out, input , rsaddr);
-
-        strcpy(output, out);
-        char *token = strtok(output, " ");
-
-        if(strcmp(token, "URROOT")==0)
-        {
-            sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
-            tcpc_init(streamADDR, streamPORT);
-            fdDOWN = tcps_init(tport);
-            fdSA = udps_init(ipaddr, uport);
-        }
-        else if( strcmp(token, "ROOTIS")==0)
-        {
-            sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s \n", command, streamNAME, streamADDR, streamPORT, ipADDR, uPORT);
-            printf("addr %s, port %s\n", ipADDR, uPORT);
-            udpc_POP(ipADDR, uPORT, tPORT); //send PQ to SA
-            while(flag == -1)
-            {
-                printf("flag %d\n", flag);
-                printf(" ipADDR %s uPORT %s\n", ipADDR, tPORT);
-                printf("POP ipADDR %s uPORT %s\n", ipADDR, tPORT);
-                flag = tcpc_new(ipADDR, tPORT);
-
-                printf("flag %d\n", flag);
-            }
-            fdDOWN = tcps_init(tport);
-           // udpc_PA(ipADDR, uPORT, tport);
-
-        }
+        adesao();
     }
     return 1;
 }
@@ -312,13 +266,10 @@ int user_interface( char *out , char *command)
     }
     else if (strcasecmp (command, "exit\n") == 0)
     {
-        printf("exit: %s\n", command);
         //abandonar a arvore
         strcpy(remove, "REMOVE ");
         strcat(remove, streamID);
         strcat(remove, "\n");
-
-        printf("strs %s\n", remove);
         udpc_RS(out, remove, streamADDR);
         exit(0);
     }
@@ -328,4 +279,53 @@ int user_interface( char *out , char *command)
         return -1;
     }
     return 1;
+}
+int adesao ()
+{
+    char input[128];
+    char command[128];
+    char out [128];
+    char output[128];
+    char ipADDR[15], uPORT[15], tPORT[15];
+    int flag = -1;
+
+
+    strcpy(input, "WHOISROOT ");
+    strcat(input, streamID);
+    strcat(input, " ");
+    strcat(input, ipaddr);
+    strcat(input, ":");
+    strcat(input, uport);
+    strcat(input, "\n");
+
+    udpc_RS(out, input , rsaddr);
+
+    strcpy(output, out);
+    char *token = strtok(output, " ");
+
+    if(strcmp(token, "URROOT")==0)
+    {
+        sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
+        tcpc_init(streamADDR, streamPORT); //data
+        fdDOWN = tcps_init(tport);
+        fdSA = udps_init(ipaddr, uport);
+    }
+    else if( strcmp(token, "ROOTIS")==0)
+    {
+        sscanf (out, "%s %[^:]:%[^:]:%s %[^:]:%s \n", command, streamNAME, streamADDR, streamPORT, ipADDR, uPORT);
+        printf("addr %s, port %s\n", ipADDR, uPORT);
+        udpc_POP(ipADDR, uPORT, tPORT); //send PQ to SA
+        while(flag == -1)
+        {
+            printf("flag %d\n", flag);
+            printf(" ipADDR %s uPORT %s\n", ipADDR, tPORT);
+            printf("POP ipADDR %s tPORT %s\n", ipADDR, tPORT);
+            flag = tcpc_new(ipADDR, tPORT);
+
+            printf("flag %d\n", flag);
+        }
+        printf("fduppppp %d\n", fdUP);
+        fdDOWN = tcps_init(tport);
+
+    }
 }
