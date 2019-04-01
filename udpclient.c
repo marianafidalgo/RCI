@@ -59,8 +59,7 @@ int udpc_RS (char *out, char *command, char *rsaddr)
 		strcpy(buffer, hexa);
 	}
 
-	if(display == 1)
-		write(1,buffer,nread);
+	write(1,buffer,nread);
 
 	freeaddrinfo(res);
 

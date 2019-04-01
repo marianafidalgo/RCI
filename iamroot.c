@@ -3,41 +3,72 @@
 
 int udpc_RS(char *out, char *command, char *rsaddr);
 char *adesao ();
+char *refresh ();
+void delay(int number_of_seconds);
 int check_arg(int argc, char **argv, char *out);
 int tcpc_init(char *ip, char *port);
 int tcpc_new(char *ip, char *port);
 int tcpc_Receive( char *out, int counter);
 int tcps_init(char *PORT);
-int tcps_WE (int fdDOWN);
+int tcps_WE (int fdDOWN, char *out);
 int tcps_Receive (int fd, char *out);
 int tcps_POPQUERY (int fdD);
+int tcps_TREEQUERY (int fdD, char * ip, char *port);
 int udps_init(char *ipaddr, char *uport);
 int udps_SA (char *streamID, char *ipaddr, char *tport, int fd);
 int user_interface(char *out, char *command);
 int udpc_POP (char *ipADDR, char *tPORT, char *uPORT);
 int udpc_PA (char *ipADDR, char *uPORT, char *tPORT);
 
+void fechar (int signum)
+{
+    printf("fechar\n");
+    close(fdDOWN);
+    close(fdUP);
+    close(fdSA);
+    for(int i = 0; i < counter; i++)
+    {
+       close(Filho.fd[i]);
+    }
+    exit(0);
+}
 
 int main(int argc, char **argv)
 {
     struct timeval * t1;
     struct timeval  t2;
-    int d = 0, maxfd = 0, socketstate = 0, fdsSA = -1, accept = -2, counter = 0;
+    int d = 0, maxfd = 0, socketstate = 0, fdsSA = -1, accept = -2;
     fd_set fd_socket;
     char input[128];
     char out[128], command[128];
 
+    signal(SIGINT, fechar);
 
     d = check_arg(argc, argv, out);
     counter = tcpsessions;
+    counterbp = bestpops;
 
-    Filho.fd= (int*)malloc((tcpsessions)*sizeof(int));
+    Filho.fd = (int*)malloc((tcpsessions)*sizeof(int));
 
     BP = (char **)malloc(bestpops * sizeof(char *));
-    for (int i=0; i<bestpops; i++)
+    for (int i = 0; i < bestpops; i++)
     {
         BP[i] = (char *)malloc(25 * sizeof(char));
-        strcpy(BP[i]," ");
+        strcpy(BP[i],"\0");
+    }
+
+    Filho.IP = (char **)malloc(tcpsessions * sizeof(char *));
+    for (int i=0; i<tcpsessions; i++)
+    {
+        Filho.IP[i] = (char *)malloc(25 * sizeof(char));
+        strcpy(Filho.IP[i]," ");
+    }
+
+    Filho.PORT = (char **)malloc(tcpsessions* sizeof(char *));
+    for (int i=0; i<tcpsessions; i++)
+    {
+        Filho.PORT[i] = (char *)malloc(6 * sizeof(char));
+        strcpy(Filho.PORT[i]," ");
     }
 
 
@@ -120,6 +151,7 @@ int main(int argc, char **argv)
                     tcps_POPQUERY(Filho.fd[i]);
                 }
             }
+            refresh();
         }
         if(socketstate > 0)
         {
@@ -131,14 +163,19 @@ int main(int argc, char **argv)
             }
             else if(fdUP != -1 && FD_ISSET(fdUP, &fd_socket))
             {
-                printf("receive up %d\n", fdUP);
+                printf("receive up %d\n", flowing);
+                for(int i = 0; i < counterbp; i++)
+                {
+                    printf("BP %s, ", BP[i]);
+                }
+                printf("\n");
                 tcpc_Receive (out, counter);
             }
             else if(fdDOWN != -1 && FD_ISSET(fdDOWN, &fd_socket))
             {
                 printf("receive down\n");
                 if( accept == -1 || accept == -2)
-                    accept = tcps_WE(fdDOWN);
+                    accept = tcps_WE(fdDOWN, out);
 
                 if (accept != -1 && accept != 0)
                 {
@@ -155,10 +192,10 @@ int main(int argc, char **argv)
             {
                 printf("receive filho\n");
                 for( int i = 0; i < counter; i++)
-                    {
-                        if(Filho.fd[i] != 0 && FD_ISSET(Filho.fd[i], &fd_socket))
-                            tcps_Receive (Filho.fd[i], out);
-                    }
+                {
+                    if(Filho.fd[i] != 0 && FD_ISSET(Filho.fd[i], &fd_socket))
+                        tcps_Receive (Filho.fd[i], out);
+                }
             }
         }
     }
@@ -262,7 +299,7 @@ int check_arg(int argc, char **argv, char *out)
 
 int user_interface( char *out , char *command)
 {
-    char remove[128]="";
+    char remove[128]="", ts[2]="";
 
     printf("command: %s", command);
     if (strcasecmp (command, "streams\n") == 0)
@@ -272,7 +309,31 @@ int user_interface( char *out , char *command)
     }
     else  if (strcasecmp (command, "status\n") == 0)
     {
-        //
+        if (display == 1)
+        {
+            printf("Stream -> %s\n", streamID);
+
+            if( flowing == 1)
+                printf("State flow -> SF\n");
+            else
+                printf("State flow -> BS\n");
+
+            printf("Estado -> %s\n", out);
+
+            if( strcmp(out, "URROOT") == 0)
+                printf("Servidor de acesso -> %s:%s\n", ipaddr, uport);
+            else
+                printf("Ponto de acesso onde estou ligado -> %s:%s\n", IPPA, PORTPA);
+            printf("Ponto de acesso -> %s:%s\n", ipaddr, tport);
+            printf("Sessões TCP (%d / %d )\n", tcpsessions, counter);
+            printf("Filhos -> ");
+            for( int i = 0; i < counter; i++)
+            {
+                if(Filho.fd[i] != 0 && Filho.fd[i] != -1)
+                    printf("%s:%s, ", Filho.IP[i], Filho.PORT[i]);
+            }
+            printf("\n");
+        }
     }
     else if (strcasecmp (command, "display on\n") == 0)
     {
@@ -300,7 +361,40 @@ int user_interface( char *out , char *command)
     }
     else if (strcasecmp (command, "tree\n") == 0)
     {
-        //
+        if(display == 1)
+        {
+            sprintf(ts, "%d", counter);
+            strcpy(tree, streamID);
+            strcat(tree, "\n");
+            strcat(tree, ipaddr);
+            strcat(tree, ":");
+            strcat(tree, tport);
+            strcat(tree, "(");
+            strcat(tree, ts);
+            for(int i = 0; i < counter; i++)
+            {
+                if(Filho.fd[i] != 0 && Filho.fd[i] != -1)
+                {
+                    strcat(tree, " ");
+                    strcat(tree, Filho.IP[i]);
+                    strcat(tree, ":");
+                    strcat(tree, Filho.PORT[i]);
+                    treecounter++;
+                }
+            }
+            strcat(tree, ")");
+            strcat(tree, "\n");
+            for(int i = 0; i < counter; i++)
+            {
+                if(Filho.fd[i] != 0 && Filho.fd[i] != -1)
+                {
+                    printf("treequery envia\n");
+                    tcps_TREEQUERY(Filho.fd[i], Filho.IP[i], Filho.PORT[i]);
+                }
+            }
+            if(treecounter == 0)
+                printf("FINAL TREE\n%s", tree);
+        }
     }
     else if (strcasecmp (command, "exit\n") == 0)
     {
@@ -355,6 +449,7 @@ char *adesao ()
     if(strcmp(token, "URROOT")==0)
     {
         sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
+        flowing = 1;
         fdUP = tcpc_init(streamADDR, streamPORT); //DATA
         fdDOWN = tcps_init(tport);
         fdSA = udps_init(ipaddr, uport);
@@ -374,8 +469,25 @@ char *adesao ()
 
             printf("flag %d\n", flag);
         }
-
-        fdDOWN = tcps_init(tport);
+        strcpy(IPPA, ipADDR);
+        strcpy(PORTPA, tport);
+        if(fdDOWN == -1)
+            fdDOWN = tcps_init(tport);
     }
     return token;
+}
+char *refresh ()
+{
+    printf("refresh \n");
+    char input[128], out[128];
+
+    strcpy(input, "WHOISROOT ");
+    strcat(input, streamID);
+    strcat(input, " ");
+    strcat(input, ipaddr);
+    strcat(input, ":");
+    strcat(input, uport);
+    strcat(input, "\n");
+
+    udpc_RS(out, input , rsaddr);
 }

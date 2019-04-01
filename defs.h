@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
+#include <signal.h>
 
 char streamID[64];
 char streamNAME[64];
@@ -25,6 +27,9 @@ unsigned int tsecs;
 char tport[15];
 char uport[15];
 
+char IPPA[15];
+char PORTPA[15];
+
 int fdUP ;
 int fdDOWN;
 int fdSA ;
@@ -37,15 +42,20 @@ int interface;
 int pos;
 int queryid;
 
-int state;
 int pops;
+int counter;
+int counterbp;
+int treecounter;
+
+int flowing;
 
 char **BP;
+char tree[2048];
 
 typedef struct ofilho{
     int *fd;
-    char IP[16];
-    char PORT[6];
+    char **IP;
+    char **PORT;
 }filho;
 
 filho Filho;

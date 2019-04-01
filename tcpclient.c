@@ -1,6 +1,7 @@
 #include "defs.h"
 
 int adesao ();
+void delay(int number_of_seconds);
 
 int tcpc_init (char *ip, char *port)
 {
@@ -87,7 +88,6 @@ int tcpc_new(char *ip, char *port)
 	strcpy(check, "WE ");
 	strcat(check, streamID);
 	strcat(check, "\n");
-
 	if (strcmp(buffer, check) == 0)
 	{
 		printf("tcpsess %d", tcpsessions);
@@ -120,10 +120,9 @@ int tcpc_new(char *ip, char *port)
 int tcpc_Receive( char *out, int counter)
 {
 	int n;
-	char buffer[128] = "", receive[128]="", popreply[128] ="", PQ[3]="", qi[6]="", bp[3]="", ts[3]="";
+	char buffer[128] = "", receive[128]="", treequery[128]="", reply[128] ="", PQ[3]="", qi[6]="", bp[3]="", ts[3]="";
 
 	n = read(fdUP, buffer, sizeof(buffer));
-
 
 	if(n==-1 && debug == 1)
 	{
@@ -133,6 +132,9 @@ int tcpc_Receive( char *out, int counter)
 	}
 	if(n == 0)
 	{
+		flowing = 0;
+		printf("ola\n");
+		delay(2000);
 		adesao();
 		return 0; //ver
 	}
@@ -161,11 +163,28 @@ int tcpc_Receive( char *out, int counter)
 	else
 	{
 		strcpy(receive, buffer);
-		char *token = strtok(receive, " ");
-		printf("token %s\n", token);
-
+		char *token = strtok(receive, " \n");
+		printf("tokenaqui %s\n", token);
+		if (strcmp("SF", token) == 0)
+		{
+			printf("asdkjasodjoij\n");
+			flowing = 1;
+			for(int i = 0; i < counter; i++)
+        	{
+				if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
+				{
+					n = write(Filho.fd[i], buffer, strlen(buffer));
+					if(n==-1 && debug == 1)
+					{
+						printf("ERROR: write tcpcnew\n");
+						exit(1);
+					}
+				}
+			}
+		}
 		if (strcmp("DA", token) == 0)
 		{
+			printf("da\n");
 			for(int i = 0; i < counter; i++)
         	{
 				if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
@@ -187,17 +206,17 @@ int tcpc_Receive( char *out, int counter)
 				sscanf(buffer, "%s %s %s\n", PQ, qi, bp);
 				sprintf(ts, "%d", tcpsessions);
 
-				strcpy(popreply, "PR ");
-				strcat(popreply, qi);
-				strcat(popreply, " ");
-				strcat(popreply, ipaddr);
-				strcat(popreply, ":");
-				strcat(popreply, tport);
-				strcat(popreply, " ");
-				strcat(popreply, ts);
-				strcat(popreply, "\n");
+				strcpy(reply, "PR ");
+				strcat(reply, qi);
+				strcat(reply, " ");
+				strcat(reply, ipaddr);
+				strcat(reply, ":");
+				strcat(reply, tport);
+				strcat(reply, " ");
+				strcat(reply, ts);
+				strcat(reply, "\n");
 
-				n = write(fdUP, popreply, strlen(popreply));
+				n = write(fdUP, reply, strlen(reply));
 				if(n==-1 && debug == 1)
 				{
 					printf("ERROR: write tcpcnew\n");
@@ -212,6 +231,60 @@ int tcpc_Receive( char *out, int counter)
 					{
 						printf("vou enviar PQ filho\n");
 						n = write(Filho.fd[i], buffer, strlen(buffer));
+						if(n==-1 && debug == 1)
+						{
+							printf("ERROR: write tcpcnew\n");
+							exit(1);
+						}
+					}
+				}
+			}
+		}
+		if (strcmp("TQ", token) == 0)
+		{
+			sscanf(buffer, "%s %[^:]:%s\n", PQ, qi, bp);
+			if(strcmp(qi, ipaddr) == 0 && strcmp(bp, tport) == 0)
+			{
+				printf("recebe treequery e envio resposta %s\n", buffer);
+				sprintf(ts, "%d", counter);
+
+				strcpy(reply, "TR ");
+				strcat(reply, ipaddr);
+				strcat(reply, ":");
+				strcat(reply, tport);
+				strcat(reply, " ");
+				strcat(reply, ts);
+				strcat(reply, "\n");
+				for(int i = 0; i < counter; i++)
+				{
+					if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
+					{
+						printf("vou juntar filho\n");
+						strcat(reply, ipaddr);
+						strcat(reply, ":");
+						strcat(reply, tport);
+						strcat(reply, "\n");
+					}
+				}
+				strcat(reply, "\n");
+
+				n = write(fdUP, reply, strlen(reply));
+				if(n==-1 && debug == 1)
+				{
+					printf("ERROR: write tcpcnew\n");
+					exit(1);
+				}
+				for(int i = 0; i < counter; i++)
+				{
+					if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
+					{
+						printf("vou enviar TQ filho\n");
+						strcpy(treequery, "TQ ");
+						strcat(treequery, Filho.IP[i]);
+						strcat(treequery, ":");
+						strcat(treequery, Filho.PORT[i]);
+						strcat(treequery, "\n");
+						n = write(Filho.fd[i], treequery, strlen(treequery));
 						if(n==-1 && debug == 1)
 						{
 							printf("ERROR: write tcpcnew\n");

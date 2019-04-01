@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
+#include <signal.h>
 
 #define TPORT "58000"
 #define UPORT "58000"
@@ -34,6 +36,9 @@ unsigned int tsecs = TSECS;
 char tport[15]=TPORT;
 char uport[15]=UPORT;
 
+char IPPA[15] = "";
+char PORTPA[15] = "";
+
 int fdUP = -1;
 int fdDOWN = -1;
 int fdSA = -1;
@@ -46,15 +51,20 @@ int interface = 0;
 int pos = 0;
 int queryid = 0;
 
-int state = 0;
 int pops = 0;
+int counter = 0;
+int counterbp = 0;
+int treecounter = 0;
+
+int flowing = 0;
 
 char **BP;
+char tree[2048]="";
 
 typedef struct ofilho{
     int *fd;
-    char IP[16];
-    char PORT[6];
+    char **IP;
+    char **PORT;
 }filho;
 
 filho Filho;
