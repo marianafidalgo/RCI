@@ -2,13 +2,14 @@
 
 
 int udpc_RS(char *out, char *command, char *rsaddr);
-int adesao ();
-int check_arg(int argc, char **argv);
+char *adesao ();
+int check_arg(int argc, char **argv, char *out);
 int tcpc_init(char *ip, char *port);
 int tcpc_new(char *ip, char *port);
-int tcpc_Receive(int fdUP);
+int tcpc_Receive( char *out, int counter);
 int tcps_init(char *PORT);
-int tcps_WE (int fdDOWN, struct ofilho Filho[]);
+int tcps_WE (int fdDOWN);
+int tcps_Receive (int fd, char *out);
 int tcps_POPQUERY (int fdD);
 int udps_init(char *ipaddr, char *uport);
 int udps_SA (char *streamID, char *ipaddr, char *tport, int fd);
@@ -21,21 +22,30 @@ int main(int argc, char **argv)
 {
     struct timeval * t1;
     struct timeval  t2;
-    int d = 0, maxfd = 0, socketstate = 0, fdsSA = -1;
+    int d = 0, maxfd = 0, socketstate = 0, fdsSA = -1, accept = -2, counter = 0;
     fd_set fd_socket;
     char input[128];
     char out[128], command[128];
 
-    d = check_arg(argc, argv);
 
-    struct ofilho Filho[tcpsessions];
-    Filho[0].fd = -1;
+    d = check_arg(argc, argv, out);
+    counter = tcpsessions;
 
-    printf("size %d\n", tcpsessions);
+    Filho.fd= (int*)malloc((tcpsessions)*sizeof(int));
 
-    printf("size %lu\n", sizeof(Filho));
+    BP = (char **)malloc(bestpops * sizeof(char *));
+    for (int i=0; i<bestpops; i++)
+    {
+        BP[i] = (char *)malloc(25 * sizeof(char));
+        strcpy(BP[i]," ");
+    }
 
-    printf("d: %d\n", d);
+
+    for(int i = 0; i < counter; i++)
+    {
+        Filho.fd[i] = -1;
+    }
+
     if(d == -1)
     {
         printf("Error: Check your args\n");
@@ -80,22 +90,36 @@ int main(int argc, char **argv)
             if(maxfd < fdSA)
                 maxfd = fdSA;
         }
+        for(int i = 0; i < counter; i++)
+        {
+            if(Filho.fd[i] != 0)
+            {
+                FD_SET(Filho.fd[i], &fd_socket);
+                if(maxfd < Filho.fd[i])
+                    maxfd = Filho.fd[i];
+            }
+        }
 
         socketstate = select(maxfd+1, &fd_socket, (fd_set*) NULL, (fd_set*) NULL, (struct timeval *) &t2);
 
-        if(socketstate < 0)
-            printf("Erro socketstate\n"); //erro
-            // De 5 em 5 segundos o socketstate é igual a 0 por causa do timeout
-        else if(socketstate == 0)
+        if(socketstate < 0 && debug == 1)
+             printf("Error: Socketstate\n");
+        // De 5 em 5 segundos o socketstate é igual a 0 por causa do timeout
+        else if(socketstate == 0 && strcmp("URROOT", out) == 0)
         {
             t1 = NULL;
             t2.tv_usec = 0;
             t2.tv_sec = 5;
             t1 = &t2;
             //pop_query
-            printf("filho %d\n", Filho[0].fd);
-            if(Filho[0].fd != 0 && Filho[0].fd != -1)
-                tcps_POPQUERY(Filho[0].fd);
+            for(int i = 0; i < counter; i++)
+            {
+                if(Filho.fd[i] != 0 && Filho.fd[i] != -1)
+                {
+                    printf("Popquery envia\n");
+                    tcps_POPQUERY(Filho.fd[i]);
+                }
+            }
         }
         if(socketstate > 0)
         {
@@ -107,29 +131,43 @@ int main(int argc, char **argv)
             }
             else if(fdUP != -1 && FD_ISSET(fdUP, &fd_socket))
             {
-                printf("receive up\n");
-                //adesao();
-                tcpc_Receive(fdUP);
+                printf("receive up %d\n", fdUP);
+                tcpc_Receive (out, counter);
             }
             else if(fdDOWN != -1 && FD_ISSET(fdDOWN, &fd_socket))
             {
                 printf("receive down\n");
-                tcps_WE(fdDOWN, Filho);
+                if( accept == -1 || accept == -2)
+                    accept = tcps_WE(fdDOWN);
+
+                if (accept != -1 && accept != 0)
+                {
+                    accept = tcps_Receive(accept, out);
+                }
+                accept = -2;
             }
             else if(fdSA != -1 && FD_ISSET(fdSA, &fd_socket))
             {
                 printf("receive SA\n");
                 udps_SA(streamID, ipaddr, tport, fdSA); //SA send to PQ
             }
+            else
+            {
+                printf("receive filho\n");
+                for( int i = 0; i < counter; i++)
+                    {
+                        if(Filho.fd[i] != 0 && FD_ISSET(Filho.fd[i], &fd_socket))
+                            tcps_Receive (Filho.fd[i], out);
+                    }
+            }
         }
     }
 }
 
-int check_arg(int argc, char **argv)
+int check_arg(int argc, char **argv, char *out)
 {
 
     char input[128];
-    char out [128];
     int opt = -1;
     char arg[64];
     char *array[3];
@@ -212,12 +250,12 @@ int check_arg(int argc, char **argv)
     if(strcmp(streamID, "") == 0)
     {
         strcpy(input, "DUMP\n");
-        udpc_RS(out, input, rsaddr);
+        udpc_RS(arg, input, rsaddr);
         exit(0);
     }
     else
     {
-        adesao();
+        strcpy(out,adesao());
     }
     return 1;
 }
@@ -267,11 +305,20 @@ int user_interface( char *out , char *command)
     else if (strcasecmp (command, "exit\n") == 0)
     {
         //abandonar a arvore
-        strcpy(remove, "REMOVE ");
-        strcat(remove, streamID);
-        strcat(remove, "\n");
-        udpc_RS(out, remove, streamADDR);
-        exit(0);
+        if(strcmp(out, "URROOT")== 0)
+        {
+            strcpy(remove, "REMOVE ");
+            strcat(remove, streamID);
+            strcat(remove, "\n");
+            udpc_RS(out, remove, streamADDR);
+            exit(0);
+        }
+        else
+        {
+            close(fdUP);
+            close(fdDOWN);
+            exit(0);
+        }
     }
     else
     {
@@ -280,8 +327,10 @@ int user_interface( char *out , char *command)
     }
     return 1;
 }
-int adesao ()
+
+char *adesao ()
 {
+    printf("adesao \n");
     char input[128];
     char command[128];
     char out [128];
@@ -306,7 +355,7 @@ int adesao ()
     if(strcmp(token, "URROOT")==0)
     {
         sscanf (out, "%s %[^:]:%[^:]:%s \n", command, streamNAME, streamADDR, streamPORT);
-        tcpc_init(streamADDR, streamPORT); //data
+        fdUP = tcpc_init(streamADDR, streamPORT); //DATA
         fdDOWN = tcps_init(tport);
         fdSA = udps_init(ipaddr, uport);
     }
@@ -320,12 +369,13 @@ int adesao ()
             printf("flag %d\n", flag);
             printf(" ipADDR %s uPORT %s\n", ipADDR, tPORT);
             printf("POP ipADDR %s tPORT %s\n", ipADDR, tPORT);
+            printf("fdup antes %d\n", fdUP);
             flag = tcpc_new(ipADDR, tPORT);
 
             printf("flag %d\n", flag);
         }
-        printf("fduppppp %d\n", fdUP);
-        fdDOWN = tcps_init(tport);
 
+        fdDOWN = tcps_init(tport);
     }
+    return token;
 }

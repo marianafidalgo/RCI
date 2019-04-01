@@ -1,12 +1,13 @@
 #include "defs.h"
 
+int adesao ();
+
 int tcpc_init (char *ip, char *port)
 {
 	struct addrinfo hints, *res;
 	int fd,addrlen,n,nread;
 	struct sockaddr_in addr;
-	char buffer[128]= " ";
-	char streamid [128]= " ";
+	char buffer[128]= " ", data[128]="";
 
 	memset(&hints,0,sizeof hints);
 	hints.ai_family=AF_INET; //IPv4
@@ -29,15 +30,12 @@ int tcpc_init (char *ip, char *port)
 	}
 
 	n = connect(fd,res->ai_addr,res->ai_addrlen);
-	printf("n %d\n", n);
 	if(n==-1 && debug == 1)
 	{
 		printf("fd %d \n", fd);
 		printf("ERROR: connect tcpc_init\n");
 		exit(1);
 	}
-
-	//ouvir da fonte!!!
 
 	return fd;
 }
@@ -57,34 +55,31 @@ int tcpc_new(char *ip, char *port)
 	n= getaddrinfo(ip,port,&hints,&res);
 	if(n!=0 && debug == 1)/*error*/
 	{
-		printf("ERROR: getaddr tcpcnew\n");
+		printf("ERROR: getaddr tcpc_new\n");
 		exit(1);
 	}
 
 	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
 	if(fd==-1 && debug == 1)
 	{
-		printf("ERROR: sokect tcpcnew\n");
+		printf("ERROR: sokect tcpc_new\n");
 		exit(1);
 	}
-
-	printf("new fd %d\n", fd);
-
-	fdUP = fd;
 
 	n= connect(fd,res->ai_addr,res->ai_addrlen);
 	if(n==-1 && debug == 1)
 	{
-		printf("ERROR: connect tcpcnew\n");
+		printf("ERROR: connect tcpc_new\n");
 		exit(1);
 	}
 
 	n= read(fd, buffer, sizeof(buffer));
 	if(n==-1 && debug == 1)
 	{
-		printf("ERROR: read tcpcnew\n");
+		printf("ERROR: read tcpc_new\n");
 		exit(1);
 	}
+	fdUP = fd;
 
 	buffer[n]='\0';
 	printf("welcome %s\n", buffer);
@@ -104,14 +99,14 @@ int tcpc_new(char *ip, char *port)
 		n = write(fd, newpop, strlen(newpop));
 		if(n==-1 && debug == 1)
 		{
-			printf("ERROR: write tcpcnew\n");
+			printf("ERROR: write tcpc_new\n");
 			exit(1);
 		}
 
 	}
 	else
 	{
-		printf("buffer oasld %s\n", buffer);
+		printf("redirect recebido %s\n", buffer);
 		sscanf(buffer, "%s %[^:]:%s\n", newpop, ip, port);
 		close(fd);
 		freeaddrinfo(res);
@@ -122,59 +117,109 @@ int tcpc_new(char *ip, char *port)
 	return fd;
 }
 
-int tcpc_Receive(int fdUP)
+int tcpc_Receive( char *out, int counter)
 {
 	int n;
-	char buffer[128] = "", popreply[128] ="", PQ[3]="", qi[6]="", bp[3]="", ts[3]="";
+	char buffer[128] = "", receive[128]="", popreply[128] ="", PQ[3]="", qi[6]="", bp[3]="", ts[3]="";
 
-	printf("fdUP %d\n", fdUP);
+	n = read(fdUP, buffer, sizeof(buffer));
 
-	n= read(fdUP, buffer, sizeof(buffer));
+
 	if(n==-1 && debug == 1)
 	{
 		//adesão ??
 		printf("ERROR: read tcpc_Receive adesao??\n");
 		exit(1);
 	}
-
-	printf("hey\n");
-	strcpy(popreply, buffer);
-	printf("i just met you\n");
-	char *token = strtok(popreply, " ");
-	printf("and this is crazy %s\n", popreply);
-
-	if (strcmp("PQ", token) == 0)
+	if(n == 0)
 	{
-		printf("so here's my number \n");
-		printf("PQQQQ %s", buffer);
-		sscanf(buffer, "%s %s %s\n", PQ, qi, bp);
-		sprintf(ts, "%d", tcpsessions);
-
-		strcpy(popreply, "PR ");
-		strcat(popreply, qi);
-		strcat(popreply, " ");
-		strcat(popreply, ipaddr);
-		strcat(popreply, ":");
-		strcat(popreply, tport);
-		strcat(popreply, " ");
-		strcat(popreply, ts);
-		strcat(popreply, "\n");
-
-		n = write(fdUP, popreply, strlen(popreply));
-		if(n==-1 && debug == 1)
-		{
-			printf("ERROR: write tcpcnew\n");
-			exit(1);
-		}
-
+		adesao();
+		return 0; //ver
 	}
-	/*else
-	{
-		printf("buffer oasld %s\n", buffer);
-		sscanf(buffer, "%s %[^:]:%s\n", newpop, ip, port);
-		close(fd);
-		freeaddrinfo(res);
-		return -1;
-	}*/
 
+	if(strcmp("URROOT", out) == 0)
+	{
+		sprintf(qi, "%02x", n);
+		strcpy(receive, "DA ");
+		strcat(receive, qi);
+		strcat(receive, "\n");
+		strcat(receive, buffer);
+
+        for(int i = 0; i < counter; i++)
+        {
+			if(Filho.fd[i] != -1)
+			{
+				n = write(Filho.fd[i], receive, strlen(receive));
+				if(n==-1 && debug == 1)
+				{
+					printf("ERROR: write tcpcnew\n");
+					exit(1);
+				}
+			}
+		}
+	}
+	else
+	{
+		strcpy(receive, buffer);
+		char *token = strtok(receive, " ");
+		printf("token %s\n", token);
+
+		if (strcmp("DA", token) == 0)
+		{
+			for(int i = 0; i < counter; i++)
+        	{
+				if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
+				{
+					n = write(Filho.fd[i], buffer, strlen(buffer));
+					if(n==-1 && debug == 1)
+					{
+						printf("ERROR: write tcpcnew\n");
+						exit(1);
+					}
+				}
+			}
+		}
+		if (strcmp("PQ", token) == 0)
+		{
+			if(tcpsessions > 0)
+			{
+				printf("recebe pop query %s\n", buffer);
+				sscanf(buffer, "%s %s %s\n", PQ, qi, bp);
+				sprintf(ts, "%d", tcpsessions);
+
+				strcpy(popreply, "PR ");
+				strcat(popreply, qi);
+				strcat(popreply, " ");
+				strcat(popreply, ipaddr);
+				strcat(popreply, ":");
+				strcat(popreply, tport);
+				strcat(popreply, " ");
+				strcat(popreply, ts);
+				strcat(popreply, "\n");
+
+				n = write(fdUP, popreply, strlen(popreply));
+				if(n==-1 && debug == 1)
+				{
+					printf("ERROR: write tcpcnew\n");
+					exit(1);
+				}
+			}
+			else
+			{
+				for(int i = 0; i < counter; i++)
+				{
+					if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
+					{
+						printf("vou enviar PQ filho\n");
+						n = write(Filho.fd[i], buffer, strlen(buffer));
+						if(n==-1 && debug == 1)
+						{
+							printf("ERROR: write tcpcnew\n");
+							exit(1);
+						}
+					}
+				}
+			}
+		}
+	}
 }

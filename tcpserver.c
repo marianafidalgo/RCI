@@ -33,7 +33,8 @@ int tcps_init(char *PORT)
 		exit(1);
 	}
 
-	if(listen(fd,5)==-1 && debug == 1)
+	n=listen(fd,128);
+	if(n == -1&& debug == 1)
 	{
 		printf("ERROR: listen tcps_init\n");
 		exit(1);
@@ -44,41 +45,41 @@ int tcps_init(char *PORT)
 	return fd;
 }
 
-int tcps_WE (int fdDOWN, struct ofilho Filho[])
+int tcps_WE (int fdDOWN)
 {
 	struct addrinfo hints, *res;
 	int fd, addrlen,n,nread;
 	struct sockaddr_in addr;
-	char welcome[25], newpop[25], filho[21], redirect[21];
+	char welcome[25], buffer[128],receive[128], filho[21], redirect[21];
 	char *tok;
 
-	if((fd=accept(fdDOWN,(struct sockaddr*)&addr,&addrlen))==-1)/*error*/
+	if((fd=accept(fdDOWN,(struct sockaddr*)&addr,&addrlen))==-1)
 	{
-		printf("Nop\n");
-		exit(1);
+		printf("Nop :'( \n");
+		return -1;
 	}
 	else if(tcpsessions < 1)
 	{
 		printf("no session available\n");
 		//redirect
 		strcpy(redirect, "RE ");
-		strcat(redirect, Filho[0].IP);
+		strcat(redirect, Filho.IP);
 		strcat(redirect, ":");
-		strcat(redirect, Filho[0].PORT);
+		strcat(redirect, Filho.PORT);
 		strcat(redirect, "\n");
 		n = write(fd, redirect, strlen(redirect));
+		printf("%s no session \n", redirect);
 		if(n==-1 && debug == 1)
 		{
 			printf("ERROR: write tcps_WE\n");
 			exit(1);
 		}
-		return -1;
+		return 0;
 	}
 	else
 	{
 		printf("tcpsess %d\n", tcpsessions);
-		printf ("fd We %d\n", fdDOWN);
-
+		state = 1;
 		strcpy(welcome, "WE ");
 		strcat(welcome, streamID);
 		strcat(welcome, "\n");
@@ -91,43 +92,93 @@ int tcps_WE (int fdDOWN, struct ofilho Filho[])
 			exit(1);
 		}
 
-		/*fica à espera de receber newpop*/
-		n = read(fd, newpop, 25);
-		if(n==-1&& debug == 1)
+		Filho.fd[pos] = fd;
+		printf("fdddd %d\n ",Filho.fd[pos] );
+
+		return fd;
+	}
+}
+
+int tcps_Receive (int fd, char *out)
+{
+	int n, pa = 0;
+	char recebe[128]="", buffer[128]="", mess[25]="", id[25]="", bp[25]="", ap[2]="";
+
+	n = read(fd, buffer, 128);
+	if(n==-1)
+	{
+		printf("ERROR: writewe tcps_WE\n");
+		exit(1);
+	}
+	printf("filho saiu %d\n", n);
+	if(n == 0)
+	{
+		Filho.fd[pos-1]=-1;
+		printf("filho delete\n"); //apagar dos bestpops???
+		tcpsessions++;
+		return -1;
+	}
+	printf("Servidor recebe %s\n", recebe);
+
+	strcpy(recebe, buffer);
+	char *token = strtok(recebe, " ");
+
+	printf("token %s\n", recebe);
+
+	if (strcmp("NP", token) == 0)
+	{
+		sscanf(buffer, "%s %[^:]:%s\n", mess, Filho.IP, Filho.PORT);
+
+		printf("guarda filho %s %s\n", Filho.IP, Filho.PORT);
+		if (tcpsessions > 0)
+			tcpsessions--;
+		pos++;
+		return fd;
+	}
+	else if (strcmp("PR", token) == 0)
+	{
+		if(strcmp(out, "URROOT") == 0)
 		{
-			printf("ERROR: read tcps_WE\n");
-			exit(1);
+			printf("prrr %s \n", buffer);
+			sscanf(buffer, "%s %s %s %s\n", mess, id, bp, ap);
+			pa = atoi(ap);
+			if (bestpops >= pa)
+			{
+				printf("guarda bp\n");
+				for(int i = pops; i < pops+pa; i++)
+					strcpy(BP[i], bp);
+
+				bestpops=bestpops-pa;
+				pops = pa;
+			}
+			else if (bestpops != 0)
+			{
+				printf("guarda else bp\n");
+				for(int i = pops; i < pops+pa; i++)
+					strcpy(BP[i], bp);
+				bestpops=0;
+			}
+		}
+		else
+		{
+			n = write(fdUP, buffer, strlen(buffer));
+			if(n==-1 && debug == 1)
+			{
+				printf("ERROR: writewe tcps_WE\n");
+				exit(1);
+			}
 		}
 
-		Filho[pos].fd = fd;
-		printf("fdddd %d\n ",Filho[pos].fd );
-
-
-		newpop[25]='\0';
-		printf("new pop %s\n", newpop);
-
-		// separar o que se chama filho em IP e port e guardas essas duas coisas.
-		// guardar o fd
-		//guarda filho
-
-        sscanf(newpop, "%s %[^:]:%s\n", welcome, Filho[pos].IP, Filho[pos].PORT);
-
-		printf("adeus %s %s\n", Filho[pos].IP, Filho[pos].PORT);
-		tcpsessions--;
-		pos++;
-
 	}
-
-	return fd;
 }
 
 int tcps_POPQUERY (int fdD)
 {
 	int n;
-	char popquery[128], popreply[128], bp[3], qi[6];
+	char popquery[128], popreply[128], bp[3], num[128], qi[6];
 
 	sprintf(bp, "%d", bestpops);
-	sprintf(qi, "%d", queryid);
+	sprintf(qi, "%02x", queryid);
 	strcpy(popquery, "PQ ");
 	strcat(popquery, qi);
 	strcat(popquery, " ");
@@ -139,20 +190,12 @@ int tcps_POPQUERY (int fdD)
 	else
 		queryid = 0;
 
-	/*envia welcome*/
+	/*envia popquery*/
 	n = write(fdD, popquery, strlen(popquery));
+
 	if(n==-1 && debug == 1)
 	{
 		printf("ERROR: write tcps_POPQUERY\n");
 		exit(1);
 	}
-	/*fica à espera de receber reply*/
-	n = read(fdD, popreply, 25);
-	printf("PRRRR %s", popreply);
-	if(n==-1 && debug == 1)
-	{
-		printf("ERROR: read tcps_POP\n");
-		exit(1);
-	}
-
 }

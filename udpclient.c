@@ -54,7 +54,7 @@ int udpc_RS (char *out, char *command, char *rsaddr)
 	{
  		for (i = 0; i < strlen(buffer); i++)
 		{
-			sprintf(&hexa[i*2],"%02x", buffer[i]);
+			sprintf(&hexa[i*2],"%02x\n", buffer[i]);
   		}
 		strcpy(buffer, hexa);
 	}

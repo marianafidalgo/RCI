@@ -44,8 +44,7 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 	struct addrinfo hints,*res;
 	int fd, addrlen,n,nread, d;
 	struct sockaddr_in addr;
-	char buffer[128] = "";
-	char resp[128] = "";
+	char buffer[128] = "", resp[128] = "";
 
 	addrlen=sizeof(addr);
 	nread=recvfrom(fdSA,buffer,128,0,(struct sockaddr*)&addr,&addrlen);
@@ -57,6 +56,23 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 
 	if(strcmp("POPREQ\n", buffer) == 0)
 	{
+		printf("SAAAA ipADDR %s tPORT %s\n", ipaddr, tport);
+		if(strcmp(BP[0], " ")!=0)
+		{
+			sscanf(BP[0], "%[^:]:%s", ipaddr, tport);
+			printf("vou dar bestpop %s\n", BP[0]);
+			if(bestpops > 1)
+			{
+				for(int i = 0; i < bestpops-1; i++)
+					strcpy(BP[i], BP[i+1]);
+			}
+			else
+				strcpy(BP[0], " ");
+			pops--;
+			bestpops++;
+
+		}
+		printf("SAAAA ipADDR %s tPORT %s\n", ipaddr, tport);
 		strcpy(resp, "POPRESP ");
 		strcat(resp, " ");
 		strcat(resp, streamID);
@@ -64,6 +80,7 @@ int udps_SA (char *streamID, char *ipaddr, char *tport, int fdSA, char *fdDOWNse
 		strcat(resp, ipaddr);
 		strcat(resp, ":");
 		strcat(resp, tport);
+
 
 		n=sendto(fdSA,resp,strlen(resp),0,(struct sockaddr*)&addr,addrlen);
 		if(n==-1 && debug == 1)

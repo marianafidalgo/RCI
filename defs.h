@@ -37,10 +37,18 @@ int interface;
 int pos;
 int queryid;
 
-struct ofilho{
-    int fd;
+int state;
+int pops;
+
+char **BP;
+
+typedef struct ofilho{
+    int *fd;
     char IP[16];
     char PORT[6];
-};
+}filho;
+
+filho Filho;
+
 
 #endif
