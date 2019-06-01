@@ -50,6 +50,7 @@ int interface = 0;
 
 int pos = 0;
 int queryid = 0;
+char idbp[5] = "";
 
 int pops = 0;
 int counter = 0;
@@ -59,6 +60,7 @@ int treecounter = 0;
 int flowing = 0;
 
 char **BP;
+int BPcheck[128];
 char tree[2048]="";
 
 typedef struct ofilho{

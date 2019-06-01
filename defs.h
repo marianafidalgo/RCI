@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include <signal.h>
+#include <errno.h>
 
 char streamID[64];
 char streamNAME[64];
@@ -41,6 +42,7 @@ int interface;
 
 int pos;
 int queryid;
+char idbp[5];
 
 int pops;
 int counter;
@@ -50,6 +52,7 @@ int treecounter;
 int flowing;
 
 char **BP;
+int BPcheck[128];
 char tree[2048];
 
 typedef struct ofilho{
@@ -59,6 +62,5 @@ typedef struct ofilho{
 }filho;
 
 filho Filho;
-
 
 #endif

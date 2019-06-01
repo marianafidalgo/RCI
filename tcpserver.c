@@ -22,29 +22,29 @@ int tcps_init(char *PORT)
 	hints.ai_socktype=SOCK_STREAM; //TCP socket
 	hints.ai_flags= AI_PASSIVE|AI_NUMERICSERV;
 
-	n= getaddrinfo(NULL,PORT,&hints,&res);
+	n = getaddrinfo(NULL,PORT,&hints,&res);
 	if(n!=0 && debug == 1)
 	{
 		printf("ERROR: getaddr tcps_init\n");
 		exit(1);
 	}
 
-	fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-	if(fd==-1 && debug == 1)
+	fd = socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+	if(fd == -1 && debug == 1)
 	{
 		printf("ERROR: socket tcps_init\n");
 		exit(1);
 	}
 
-	n=bind(fd,res->ai_addr,res->ai_addrlen);
-	if(n==-1 && debug == 1)
+	n = bind(fd,res->ai_addr,res->ai_addrlen);
+	if(n == -1 && debug == 1)
 	{
-		printf("ERROR: bind tcps_init\n");
+		printf("ERROR: bind tcps_init %s\n", strerror(errno));
 		exit(1);
 	}
 
-	n=listen(fd,128);
-	if(n == -1&& debug == 1)
+	n = listen(fd,128);
+	if(n == -1 && debug == 1)
 	{
 		printf("ERROR: listen tcps_init\n");
 		exit(1);
@@ -57,20 +57,22 @@ int tcps_init(char *PORT)
 
 int tcps_WE (int fdDOWN, char *out)
 {
-	struct addrinfo hints, *res;
+	//struct addrinfo hints, *res;
 	int fd, addrlen,n,nread;
 	struct sockaddr_in addr;
 	char welcome[25], buffer[128],receive[128], filho[21], redirect[21];
 	char *tok;
 
-	if((fd=accept(fdDOWN,(struct sockaddr*)&addr,&addrlen))==-1)
+	if((fd = accept(fdDOWN,(struct sockaddr*)&addr,&addrlen)) == -1)
 	{
-		printf("Nop :'( \n");
+		if(debug == 1)
+			printf("ERROR: Did not accept tcps_WE\n");
 		return -1;
 	}
 	else if(tcpsessions < 1)
 	{
-		printf("no session available\n");
+		if(debug == 1)
+			printf("no session available\n");
 		//redirect
 		strcpy(redirect, "RE ");
 		strcat(redirect, Filho.IP[0]);
@@ -78,8 +80,7 @@ int tcps_WE (int fdDOWN, char *out)
 		strcat(redirect, Filho.PORT[0]);
 		strcat(redirect, "\n");
 		n = write(fd, redirect, strlen(redirect));
-		printf("%s no session \n", redirect);
-		if(n==-1 && debug == 1)
+		if(n == -1 && debug == 1)
 		{
 			printf("ERROR: write tcps_WE\n");
 			exit(1);
@@ -88,24 +89,22 @@ int tcps_WE (int fdDOWN, char *out)
 	}
 	else
 	{
-		printf("tcpsess %d\n", tcpsessions);
 		strcpy(welcome, "WE ");
 		strcat(welcome, streamID);
 		strcat(welcome, "\n");
 
 		/*envia welcome*/
 		n = write(fd, welcome, strlen(welcome));
-		if(n==-1 && debug == 1)
+		if(n == -1 && debug == 1)
 		{
 			printf("ERROR: writewe tcps_WE\n");
 			exit(1);
 		}
-		printf("out %s\n", out);
 		if(strcmp(out, "URROOT") == 0)
 		{
 			delay(2);
 			n = write(fd, "SF\n", 3);
-			if(n==-1 && debug == 1)
+			if(n == -1 && debug == 1)
 			{
 				printf("ERROR: writewe tcps_WE\n");
 				exit(1);
@@ -113,12 +112,11 @@ int tcps_WE (int fdDOWN, char *out)
 		}
 		else
 		{
-			printf("FLOWING %d\n",flowing );
 			if(flowing == 1)
 			{
 				delay(2);
 				n = write(fd, "SF\n", 3);
-				if(n==-1 && debug == 1)
+				if(n == -1 && debug == 1)
 				{
 					printf("ERROR: writewe tcps_WE\n");
 					exit(1);
@@ -128,7 +126,7 @@ int tcps_WE (int fdDOWN, char *out)
 			{
 				delay(2);
 				n = write(fd, "BS\n", 3);
-				if(n==-1 && debug == 1)
+				if(n == -1 && debug == 1)
 				{
 					printf("ERROR: writewe tcps_WE\n");
 					exit(1);
@@ -136,37 +134,41 @@ int tcps_WE (int fdDOWN, char *out)
 			}
 		}
 		Filho.fd[pos] = fd;
-		printf("fdddd %d\n ",Filho.fd[pos] );
 
 		return fd;
 	}
-	freeaddrinfo(res);
+	//freeaddrinfo(res);
 }
 
 int tcps_Receive (int fd, char *out)
 {
-	int n, pa = 0, j = 0, t = 0, PAfalta = 0;
-	char recebe[128]="", buffer[128]="", mess[25]="", id[25]="", bp[25]="", ap[2]="", flow[25]="", newPA[25]="";
-	char **array;
+	int n, pa = 0, j = 0, t = 0, p = 0, PAfalta = 0, flag = 0;
+	char recebe[128] = "", buffer[128] = "", popquery[128]="", mess[25] = "", id[25] = "", bp[25] = "", ap[2] = "", flow[25] = "", newPA[25] = "", hexad[2048] = "", reply[128] = "";
+	char **array, **arrayPQ;
 
 	array = (char **)malloc(10 * sizeof(char *));
-    for (int i=0; i<10; i++)
+    for (int i = 0; i < 10; i++)
     {
         array[i] = (char *)malloc(25 * sizeof(char));
-        strcpy(array[i]," ");
+        strcpy(array[i],"\0");
     }
-
-	printf("Servidor recebe %s\n", recebe);
+	/*arrayPQ = (char **)malloc(10 * sizeof(char *));
+    for (int i = 0; i < 10; i++)
+    {
+        arrayPQ[i] = (char *)malloc(25 * sizeof(char));
+        strcpy(arrayPQ[i],"\0");
+    }*/
 
 	n = read(fd, buffer, 128);
-	if(n==-1)
+	if(n == -1)
 	{
 		printf("ERROR: writewe tcps_Receive\n");
 		exit(1);
 	}
 	if(n == 0)
 	{
-		printf("filho delete\n");
+		if(debug == 1)
+			printf("filho delete\n");
 		for(int i = 0; i < counter; i++)
         {
 			if(fd == Filho.fd[i])
@@ -187,30 +189,29 @@ int tcps_Receive (int fd, char *out)
 					Filho.fd[j] = Filho.fd[j+1];
 				}
 
-				for(int i = 0; i < counterbp; i++)
+				/*for(int i = 0; i < counterbp; i++)
         		{
 					if(strcmp(BP[i], flow) == 0)
 					{
 						strcpy(BP[i], newPA);
-						printf("filho mudar no bp %d\n", i);
 					}
-
 					else
 					{
-						printf("else filho mudar no bp %s\n", newPA);
 						if(counterbp > 1)
 						{
 							for(int j = counterbp-2; j >= 0; j--)
 								strcpy(BP[j+1], BP[j]);
 						}
-						strcpy(BP[0], newPA);
+						if (i == (counterbp - 1))
+							strcpy(BP[0], newPA);
 					}
-				}
+				}*/
+
 			}
-			else
+			else if(Filho.fd[i] != -1 && Filho.fd[i] != 0)
 			{
 				n = write(Filho.fd[i], "BS\n", 3);
-				if(n==-1 && debug == 1)
+				if(n == -1 && debug == 1)
 				{
 					printf("ERROR: writewe tcps_Receive\n");
 					exit(1);
@@ -225,101 +226,156 @@ int tcps_Receive (int fd, char *out)
 	strcpy(recebe, buffer);
 	char *token = strtok(recebe, " ");
 
-	printf("token %s\n", recebe);
+	if(debug == 1)
+		printf("token %s\n", recebe);
 
 	if (strcmp("NP", token) == 0)
 	{
 		sscanf(buffer, "%s %[^:]:%s\n", mess, Filho.IP[pos], Filho.PORT[pos]);
 
-		printf("guarda filho %s %s\n", Filho.IP[pos], Filho.PORT[pos]);
+		if(debug == 1)
+			printf("guarda filho %s %s\n", Filho.IP[pos], Filho.PORT[pos]);
 		if (tcpsessions > 0)
 			tcpsessions--;
 		pos++;
 		flowing = 1;
 		return fd;
 	}
-	else if (strcmp("PR", token) == 0)
+	/*else if (strcmp("PR", token) == 0)
 	{
+		sscanf(buffer, "%s %s %s %s\n", mess, idbp, bp, ap);
+		printf("sscanf : %s %s %s %s\n", mess, idbp, bp, ap);
+		pa = atoi(ap);
+		int bestp = atoi(bp);
+		int qid = atoi(id);
+		strcpy(popquery, buffer);
+
+		char *tok = strtok(popquery, " ");
+		p = 0;
+		while(tok != NULL)
+		{
+			arrayPQ[p] = tok;
+			tok = strtok(NULL, "\n");
+			p++;
+			printf("HJKAHERKJAH %s\n", arrayPQ[p]);
+		}
+
 		if(strcmp(out, "URROOT") == 0)
 		{
-			printf("prrr %s \n", buffer);
-			sscanf(buffer, "%s %s %s %s\n", mess, id, bp, ap);
-			pa = atoi(ap);
-			PAfalta = pa;
-			printf("bestpops %d\n", bestpops);
-			printf("pa  %d\n", pa);
-			if (bestpops >= pa)
+			printf("prrr %s", buffer);
+			if((strcmp(BP[0], idbp)) != 0)
 			{
-				printf("guarda bp %d\n", pops);
-				for(int m = 0; m < pa; m++)
+				printf("strcmp(BP[0], idbp)\n");
+				BP[0] = idbp; //acho que isto é burro, checka!!
+				//limpar vetor para novo id
+				for(int i = 1; i < ((counterbp * counter) + 1); i++)
+					strcpy(BP[i], "\0");
+				//preencher com pontos de acesso recebidos
+				for(int i = 1; i < pa+1; i++)
 				{
-					j = 0;
-					for(int i = pops; i < counterbp; i++)
-					{
-						printf("i j %d %d\n", i, j);
-						printf("aquiii BPi %s\n", BP[j]);
-						printf("bppp %s\n", bp);
-						if((strcmp(BP[j], bp) == 0) && PAfalta == 0)
-						{
-							printf("iagua1\n");
-							break;
-						}
-						else
-						{
-							printf("escreve bp\n");
-							strcpy(BP[i], bp);
-							bestpops--;
-							pops++;
-							PAfalta--;
-							break;
-						}
-						j++;
-					}
+					printf("preencher novo id com pa %s %s\n", bp, ap);
+					strcpy(BP[i], bp);
+					pops = pa;
+					printf("paaaaa %d pops %d \n", pa, pops);
 				}
 			}
-			else if (bestpops != 0)
+			else
 			{
-				printf("guarda else bp\n");
-				for(int i = pops; i < bestpops; i++)
+				for(int i = 1; i < ((counterbp * counter) + 1); i++)
 				{
-					if((strcmp(BP[i], bp)!=0) || PAfalta > 0)
+					if((strcmp(BP[i], "\0") == 0));
 					{
-						strcpy(BP[i], bp);
-						PAfalta--;
+						for(int j = i; j < i+pa; j++)
+						{
+							strcpy(BP[j], bp);
+							pops = j;
+							printf("pa %d pooooops %d \n", pa, pops);
+						}
+						break;
 					}
 				}
-				bestpops=0;
 			}
 		}
 		else
 		{
-			n = write(fdUP, buffer, strlen(buffer));
-			if(n==-1 && debug == 1)
+			for(int i = 0; i < 128; i+=2)
 			{
-				printf("ERROR: writewe tcps_WE\n");
-				exit(1);
+				if(BPcheck[i] == qid)
+				{
+					j = i;
+					break;
+				}
+			}
+			if(pa < BPcheck[j+1])
+			{
+				printf("mmmmmmmmmmmmmm %s \n", buffer);
+				n = write(fdUP, buffer, strlen(buffer));
+				if(n == -1 && debug == 1)
+				{
+					printf("ERROR: writewe tcps_WE\n");
+					exit(1);
+				}
+				BPcheck[j+1] = BPcheck[j+1] - pa;
+			}
+			else if(pa = BPcheck[j+1])
+			{
+				printf("pa=\n");
+				n = write(fdUP, buffer, strlen(buffer));
+				if(n == -1 && debug == 1)
+				{
+					printf("ERROR: writewe tcps_WE\n");
+					exit(1);
+				}
+				for(int i = j; i < 126; i++)
+				{
+					BPcheck[i] = BPcheck[i+2];
+				}
+			}
+			else if(pa > BPcheck[j+1])
+			{
+				strcpy(reply, "PR ");
+				strcat(reply, id);
+				strcat(reply, " ");
+				strcat(reply, ipaddr);
+				strcat(reply, ":");
+				strcat(reply, tport);
+				strcat(reply, " ");
+				strcat(reply, bp);
+				strcat(reply, "\n");
+				printf("replyyyy %s \n", reply);
+				n = write(fdUP, reply, strlen(reply));
+				if(n == -1 && debug == 1)
+				{
+					printf("ERROR: writewe tcps_WE\n");
+					exit(1);
+				}
+				for(int i = j; i < 126; i++)
+				{
+					BPcheck[i] = BPcheck[i+2];
+				}
 			}
 		}
 
-	}
+	}*/
 	else if (strcmp("TR", token) == 0)
 	{
 		if(strcmp(out, "URROOT") == 0)
 		{
-			//guarda
-			printf("guarda tree reply\n");
+
 			char *tok = strtok(buffer, " ");
             t = 0;
 	        while(tok != NULL)
 	        {
-		        array[t++] = tok;
+		        array[t] = tok;
 		        tok = strtok(NULL, " \n");
+				t++;
 	        }
 			treecounter--;
 			strcat(tree, array[1]);
 			strcat(tree, "(");
 			strcat(tree, array[2]);
-			while(strcmp(array[t], " ") != 0)
+			t = 3;
+			while(strcmp(array[t], "\0") != 0)
 			{
 				strcat(tree, " ");
 				strcat(tree,array[t]);
@@ -331,20 +387,27 @@ int tcps_Receive (int fd, char *out)
 		}
 		else
 		{
-			printf("envia tree reply");
 			n = write(fdUP, buffer, strlen(buffer));
-			if(n==-1 && debug == 1)
+			if(n == -1 && debug == 1)
 			{
 				printf("ERROR: writewe tcps_WE\n");
 				exit(1);
 			}
 		}
-		if(treecounter == 0)
-        	printf("FINAL TREEEEEEEEEEEEEEEEEEEEEEEE\n%s", tree);
+		if(treecounter == 0 && (strcmp(out, "URROOT") == 0) && hex == 0 )
+        	printf("%s \n", tree);
+		else if(treecounter == 0 && (strcmp(out, "URROOT") == 0) && hex == 1 )
+		{
+			for (int i = 0; i < strlen(tree); i++)
+			{
+				sprintf(&hexad[i*4],"%04x\n", tree[i]);
+			}
+			printf("%s\n", hexad);
+		}
 	}
 }
 
-int tcps_POPQUERY (int fdD)
+/*int tcps_POPQUERY (int fdD)
 {
 	int n;
 	char popquery[128], popreply[128], bp[3], num[128], qi[6];
@@ -362,14 +425,14 @@ int tcps_POPQUERY (int fdD)
 	else
 		queryid = 0;
 
-	/*envia popquery*/
+
 	n = write(fdD, popquery, strlen(popquery));
-	if(n==-1 && debug == 1)
+	if(n == -1 && debug == 1)
 	{
 		printf("ERROR: write tcps_POPQUERY\n");
 		exit(1);
 	}
-}
+}*/
 
 int tcps_TREEQUERY (int fdD, char * ip, char *port)
 {
@@ -382,9 +445,10 @@ int tcps_TREEQUERY (int fdD, char * ip, char *port)
 	strcat(treequery, port);
 	strcat(treequery, "\n");
 
-	/*envia treequery*/
+	//envia treequery
+
 	n = write(fdD, treequery, strlen(treequery));
-	if(n==-1 && debug == 1)
+	if(n == -1 && debug == 1)
 	{
 		printf("ERROR: write tcps_POPQUERY\n");
 		exit(1);
